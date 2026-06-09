@@ -1,0 +1,54 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Access-land data — large and regeneratable, so kept OUT of git history.
+#   assets/access/      source GeoJSON, rebuilt with spike/fetch_access.mjs
+#   assets/packs/*.geojson  region packs, rebuilt with spike/build_pack.mjs
+#                           (or downloaded from GitHub Releases)
+# The tiny index files (manifest.json, coverage.geojson) ARE tracked so the app
+# always knows what regions exist. After cloning, regenerate the data — see
+# DATA.md.
+/assets/access/
+/assets/packs/*.geojson
+!/assets/packs/coverage.geojson

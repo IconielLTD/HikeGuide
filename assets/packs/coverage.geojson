@@ -1,0 +1,320 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "packId": "london",
+        "nation": "England",
+        "label": "London"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -0.55,
+              51.25
+            ],
+            [
+              0.35,
+              51.25
+            ],
+            [
+              0.35,
+              51.72
+            ],
+            [
+              -0.55,
+              51.72
+            ],
+            [
+              -0.55,
+              51.25
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "packId": "north-east-england",
+        "nation": "England",
+        "label": "North East England"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -2.7,
+              54.3
+            ],
+            [
+              -0.65,
+              54.3
+            ],
+            [
+              -0.65,
+              55.85
+            ],
+            [
+              -2.7,
+              55.85
+            ],
+            [
+              -2.7,
+              54.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "packId": "north-west-england",
+        "nation": "England",
+        "label": "North West England"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -3.75,
+              52.95
+            ],
+            [
+              -2,
+              52.95
+            ],
+            [
+              -2,
+              55.2
+            ],
+            [
+              -3.75,
+              55.2
+            ],
+            [
+              -3.75,
+              52.95
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "packId": "yorkshire-and-the-humber",
+        "nation": "England",
+        "label": "Yorkshire and the Humber"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -2.6,
+              53.25
+            ],
+            [
+              0.25,
+              53.25
+            ],
+            [
+              0.25,
+              54.65
+            ],
+            [
+              -2.6,
+              54.65
+            ],
+            [
+              -2.6,
+              53.25
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "packId": "east-midlands",
+        "nation": "England",
+        "label": "East Midlands"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -1.85,
+              51.95
+            ],
+            [
+              0.4,
+              51.95
+            ],
+            [
+              0.4,
+              53.65
+            ],
+            [
+              -1.85,
+              53.65
+            ],
+            [
+              -1.85,
+              51.95
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "packId": "west-midlands",
+        "nation": "England",
+        "label": "West Midlands"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -3.25,
+              51.9
+            ],
+            [
+              -1.15,
+              51.9
+            ],
+            [
+              -1.15,
+              53.25
+            ],
+            [
+              -3.25,
+              53.25
+            ],
+            [
+              -3.25,
+              51.9
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "packId": "east-of-england",
+        "nation": "England",
+        "label": "East of England"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -0.75,
+              51.45
+            ],
+            [
+              1.8,
+              51.45
+            ],
+            [
+              1.8,
+              53.1
+            ],
+            [
+              -0.75,
+              53.1
+            ],
+            [
+              -0.75,
+              51.45
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "packId": "south-east-england",
+        "nation": "England",
+        "label": "South East England"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -1.95,
+              50.7
+            ],
+            [
+              1.45,
+              50.7
+            ],
+            [
+              1.45,
+              52.2
+            ],
+            [
+              -1.95,
+              52.2
+            ],
+            [
+              -1.95,
+              50.7
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "packId": "south-west-england",
+        "nation": "England",
+        "label": "South West England"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -6.5,
+              49.85
+            ],
+            [
+              -1.45,
+              49.85
+            ],
+            [
+              -1.45,
+              52.15
+            ],
+            [
+              -6.5,
+              52.15
+            ],
+            [
+              -6.5,
+              49.85
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

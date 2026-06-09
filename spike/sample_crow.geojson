@@ -1,0 +1,50 @@
+{
+  "type": "FeatureCollection",
+  "_note": "THROWAWAY Phase-0 sample. Hand-drawn polygons approximating CRoW Open Access land structure (FeatureCollection of Polygon/MultiPolygon, coords as [lng,lat]). NOT real Natural England data. Used only to validate point-in-polygon + bbox prefilter.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Stanage Edge (approx open access moor)", "access": "open_access" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-1.6450, 53.3520],
+            [-1.6200, 53.3520],
+            [-1.6180, 53.3380],
+            [-1.6400, 53.3370],
+            [-1.6480, 53.3450],
+            [-1.6450, 53.3520]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Sample MultiPolygon parcel", "access": "open_access" },
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [-1.7000, 53.3000],
+              [-1.6900, 53.3000],
+              [-1.6900, 53.3100],
+              [-1.7000, 53.3100],
+              [-1.7000, 53.3000]
+            ]
+          ],
+          [
+            [
+              [-1.6800, 53.2900],
+              [-1.6700, 53.2900],
+              [-1.6700, 53.2950],
+              [-1.6800, 53.2950],
+              [-1.6800, 53.2900]
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

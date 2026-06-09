@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "packs": [
+    {
+      "id": "london",
+      "nation": "England",
+      "label": "London",
+      "version": "2026-06-09",
+      "sizeBytes": 815408,
+      "asset": "assets/packs/london.geojson"
+    },
+    {
+      "id": "north-east-england",
+      "nation": "England",
+      "label": "North East England",
+      "version": "2026-06-09",
+      "sizeBytes": 3554510,
+      "asset": "assets/packs/north-east-england.geojson"
+    },
+    {
+      "id": "north-west-england",
+      "nation": "England",
+      "label": "North West England",
+      "version": "2026-06-09",
+      "sizeBytes": 6772903,
+      "asset": "assets/packs/north-west-england.geojson"
+    },
+    {
+      "id": "yorkshire-and-the-humber",
+      "nation": "England",
+      "label": "Yorkshire and the Humber",
+      "version": "2026-06-09",
+      "sizeBytes": 6971846,
+      "asset": "assets/packs/yorkshire-and-the-humber.geojson"
+    },
+    {
+      "id": "east-midlands",
+      "nation": "England",
+      "label": "East Midlands",
+      "version": "2026-06-09",
+      "sizeBytes": 2358579,
+      "asset": "assets/packs/east-midlands.geojson"
+    },
+    {
+      "id": "west-midlands",
+      "nation": "England",
+      "label": "West Midlands",
+      "version": "2026-06-09",
+      "sizeBytes": 2218211,
+      "asset": "assets/packs/west-midlands.geojson"
+    },
+    {
+      "id": "east-of-england",
+      "nation": "England",
+      "label": "East of England",
+      "version": "2026-06-09",
+      "sizeBytes": 1651393,
+      "asset": "assets/packs/east-of-england.geojson"
+    },
+    {
+      "id": "south-east-england",
+      "nation": "England",
+      "label": "South East England",
+      "version": "2026-06-09",
+      "sizeBytes": 4632221,
+      "asset": "assets/packs/south-east-england.geojson"
+    },
+    {
+      "id": "south-west-england",
+      "nation": "England",
+      "label": "South West England",
+      "version": "2026-06-09",
+      "sizeBytes": 5762795,
+      "asset": "assets/packs/south-west-england.geojson"
+    }
+  ]
+}
