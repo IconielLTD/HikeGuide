@@ -19,8 +19,9 @@ Five tabs:
   environment around you (nearest water + its kind, woodland type), and the
   land-access classification where you're standing. All of it updates live as
   you move and cross boundaries.
-- **Map** — an OpenStreetMap basemap with bundled access-land overlays, a live
-  pulsing GPS marker, and trip recording. While recording, your route draws in
+- **Map** — an OpenStreetMap basemap with per-region access-land overlays
+  (downloaded on demand — see below), a live pulsing GPS marker, and trip
+  recording. While recording, your route draws in
   amber and renders **lighter where you double back** so you can see where
   you've already been. The "Access" banner opens a plain-language guide to what
   you legally can and can't do here (roaming on CRoW land, going off-path in
@@ -41,11 +42,15 @@ screen-off and backgrounding. Step count comes from the device pedometer.
   `TripRecorder` owns the stream and `LiveLocation` mirrors its fixes. The
   stream is released when no location tab is visible, and offscreen tabs pause
   their animations — both to save battery.
-- **Access land** — delivered as per-region **packs** (GeoJSON of CRoW Open
-  Access + Forestry England, classified offline with point-in-polygon tests).
-  The app detects your region offline from a tiny bundled coverage index, then
-  loads the matching pack — bundled today, downloadable from GitHub Releases as
-  coverage expands, so the install stays small and works offline in the field.
+- **Access land** — delivered as per-region **packs** (CRoW Open Access +
+  Forestry England, classified offline with point-in-polygon tests). The app
+  detects your region offline from a tiny bundled coverage index, then loads
+  that region's pack. **Packs download on demand — never automatically.** The
+  first time you're in a region, open the **Info** tab and download its pack
+  (ideally on Wi-Fi before a trip); after that it works fully offline. The Map
+  shows a prompt when you're in a region whose pack you haven't downloaded yet,
+  with a shortcut to the Info tab. This keeps the install small and avoids
+  surprise mobile-data use.
 - **Environment** — nearest water and woodland come from the Overpass (OSM) API,
   **cache-first** with bounded retries. Results are stored locally; the app does
   not re-query aggressively.

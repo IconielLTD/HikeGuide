@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 
 import 'access_land_service.dart';
 import 'location_service.dart';
+import 'region_pack_service.dart';
 import 'trip_recorder.dart';
 
 /// Single source of truth for the device's live position and the land-access
@@ -49,6 +50,7 @@ class LiveLocation extends ChangeNotifier with WidgetsBindingObserver {
     _started = true;
     WidgetsBinding.instance.addObserver(this);
     TripRecorder.instance.addListener(_onRecorderChange);
+    RegionPackService.instance.addListener(_onPacksChanged);
 
     final result = await _location.getCurrentLatLng();
     _locating = false;
@@ -100,6 +102,13 @@ class LiveLocation extends ChangeNotifier with WidgetsBindingObserver {
       if (fix != null) _setCurrent(fix);
     }
     _syncSubscription();
+  }
+
+  void _onPacksChanged() {
+    // A region pack became available — re-classify the current position so the
+    // access status reflects the new data without waiting for the user to move.
+    final at = _current;
+    if (at != null) _refreshAccess(at);
   }
 
   @override

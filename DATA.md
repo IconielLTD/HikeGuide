@@ -89,6 +89,15 @@ node spike/build_pack.mjs --base-url https://github.com/<you>/<repo>/releases/do
 Replace `<you>`, `<repo>`, and `<tag>`. This bakes those download links (and a
 checksum for each file) into `manifest.json`, instead of bundling the packs.
 
+> **Get the URL right** — it's the release **download** path, not the clone URL
+> or the release page:
+> - ✅ `https://github.com/<you>/<repo>/releases/download/<tag>`
+> - ❌ `…/<repo>.git/releases/…` (the `.git` clone URL — causes every download to 404)
+> - ❌ `…/releases/tag/<tag>` (the release *page*, not the asset path)
+>
+> The script now strips a stray `.git` and warns if the URL isn't a download
+> URL, but it's worth double-checking.
+
 ### 3. Create the Release and upload the packs
 
 On your repo page → **Releases** → **Draft a new release**:
@@ -96,8 +105,9 @@ On your repo page → **Releases** → **Draft a new release**:
 1. In **Choose a tag**, type the exact tag from step 2 and confirm it.
 2. Give it a title (the tag name is fine).
 3. Drag every `assets/packs/*.geojson` file into the **attach files** box.
-   *(Upload `manifest.json` and `coverage.geojson` too if you like — they're
-   harmless, but the app uses the bundled copies of those.)*
+   *(Also drag in `manifest.json` and `coverage.geojson` if you plan to use the
+   optional no-app-update mode below; otherwise the app uses the bundled copies
+   of those, so they're optional here.)*
 4. Click **Publish release**.
 
 Each file now has a permanent link like
@@ -130,13 +140,42 @@ the pack and caches it for offline use.
 > no download, keep its line in `pubspec.yaml`
 > (e.g. `- assets/packs/east-midlands.geojson`) and leave that file in place.
 
-### Advanced: updating packs without a new app version
+### When does a future change need a new app version?
 
-The steps above bake the pack links into the *bundled* manifest, so adding a
-region later needs an app update. If you'd rather update the catalogue
-remotely, also upload `manifest.json` to the Release and set
-`RegionPackService.remoteManifestUrl` to its URL — the app will fetch the live
-manifest on launch and fall back to the bundled one offline.
+First, what "app update" means here: rebuilding the app (`flutter build apk
+--release`) and publishing that new APK as a release for people to **reinstall**
+— the same way they first installed it. It is *not* the same as updating the
+data.
+
+The app bundles two tiny index files: `coverage.geojson` (where each region is)
+and `manifest.json` (where to download each region's data). The big region data
+lives on your Release and always downloads on demand. So:
+
+- **Every region you built in already works now — no app update needed.** A user
+  anywhere in England just downloads their region's pack the first time they need
+  it. Adding the regions wasn't something you do "later"; they're all in the
+  coverage index you just shipped.
+- You only need a new app version to **change those two bundled index files** —
+  i.e. to *refresh a region's data* (the checksum changes) or *add a brand-new
+  area* (e.g. Scotland later). Refreshing access data happens rarely (the source
+  datasets update maybe once a year), so this is infrequent.
+
+### Optional: avoid app updates entirely
+
+If you'd rather never rebuild the app just to change data, host the two index
+files too. In step 3, also upload `manifest.json` and `coverage.geojson` to the
+Release, then set this in `lib/services/region_pack_service.dart`:
+
+```dart
+static const String remoteBaseUrl =
+    'https://github.com/<you>/<repo>/releases/download/<tag>';
+```
+
+Now the app fetches both index files from there on launch (falling back to the
+bundled copies when offline), so you can add or refresh **any** region — even a
+new country — just by re-uploading files. Use one **stable tag** you keep
+reusing (e.g. `access-data`) and replace its files in place, so the URL never
+changes and the app always finds the latest.
 
 ---
 

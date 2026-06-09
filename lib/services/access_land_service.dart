@@ -60,8 +60,13 @@ class AccessLandService {
   /// single in-flight parse.
   final Map<String, Future<List<AccessParcel>>> _loads = {};
 
-  Future<List<AccessParcel>> _parcelsForPack(RegionPack pack) {
+  Future<List<AccessParcel>> _parcelsForPack(RegionPack pack) async {
     final key = '${pack.id}-${pack.version}';
+    final existing = _loads[key];
+    if (existing != null) return existing;
+    // Don't cache a "not downloaded yet" miss: once the pack is fetched a later
+    // call must re-read it, or the Map/Now stay empty until an app restart.
+    if (!await packs.isAvailable(pack)) return const [];
     return _loads[key] ??= _loadPack(pack);
   }
 

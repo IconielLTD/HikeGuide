@@ -93,7 +93,8 @@ flutter:
   # `--base-url` so packs download from GitHub Releases instead — then only
   # manifest.json + coverage.geojson stay here and the install shrinks.
   assets:
-    - assets/packs/
+    - assets/packs/manifest.json
+    - assets/packs/coverage.geojson
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

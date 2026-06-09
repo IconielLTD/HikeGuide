@@ -28,18 +28,24 @@ enum PackState {
 /// Decides which region pack applies to the user's location, and makes its data
 /// available offline.
 ///
-/// Phase 1: the manifest + the single "East Midlands" pack are bundled assets,
-/// so everything resolves locally with no network. The remote path (fetch the
-/// manifest from [remoteManifestUrl], download a pack by URL, verify its
-/// sha256, cache it on disk) is implemented and ready — it activates as soon as
-/// packs are published to GitHub Releases and the manifest lists `url`s.
-class RegionPackService {
+/// By default the manifest, coverage index, and packs are all bundled assets,
+/// so everything resolves locally with no network. Set [remoteBaseUrl] to a
+/// published location (a GitHub Release's download URL) and the app instead
+/// fetches `manifest.json` + `coverage.geojson` from there on launch — falling
+/// back to the bundled copies when offline — and downloads each pack by URL
+/// (verifying its sha256, caching it on disk). That lets you add or refresh
+/// regions by re-uploading those files, with no app update.
+class RegionPackService extends ChangeNotifier {
   RegionPackService._();
   static final RegionPackService instance = RegionPackService._();
 
-  /// Where the published manifest will live once packs ship on GitHub Releases.
-  /// Empty → use the bundled bootstrap manifest only (Phase 1).
-  static const String remoteManifestUrl = '';
+  /// Base URL of the published pack assets — a GitHub Release's download URL,
+  /// e.g. https://github.com/<you>/<repo>/releases/download/<tag>. Leave empty
+  /// to run fully bundled/offline (manifest + coverage + packs from assets).
+  /// When set, the app fetches `manifest.json` and `coverage.geojson` from this
+  /// base on launch (falling back to the bundled copies if offline), so regions
+  /// can be added or refreshed by re-uploading files — no app update needed.
+  static const String remoteBaseUrl = '';
 
   static const String _bundledManifest = 'assets/packs/manifest.json';
   static const String _bundledCoverage = 'assets/packs/coverage.geojson';
@@ -63,25 +69,33 @@ class RegionPackService {
   Future<PackManifest> manifest() => _manifestFuture ??= _loadManifest();
 
   Future<PackManifest> _loadManifest() async {
-    if (remoteManifestUrl.isNotEmpty) {
-      try {
-        final res = await _dio.get<String>(remoteManifestUrl,
-            options: Options(responseType: ResponseType.plain));
-        final decoded = jsonDecode(res.data ?? '');
-        if (decoded is Map<String, dynamic>) return PackManifest.fromJson(decoded);
-      } catch (e) {
-        debugPrint('RegionPackService: remote manifest failed ($e); using bundled');
-      }
-    }
-    final raw = await rootBundle.loadString(_bundledManifest);
+    final raw = await _loadIndex('manifest.json', _bundledManifest);
     return PackManifest.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
 
   Future<PackResolver> _resolver() => _resolverFuture ??= _loadResolver();
 
   Future<PackResolver> _loadResolver() async {
-    final raw = await rootBundle.loadString(_bundledCoverage);
+    final raw = await _loadIndex('coverage.geojson', _bundledCoverage);
     return PackResolver(PackResolver.parseCoverage(raw));
+  }
+
+  /// Load a small index file (manifest or coverage): from [remoteBaseUrl] when
+  /// set, otherwise from the bundled asset. Any network error falls back to the
+  /// bundled copy, so the app always works offline.
+  Future<String> _loadIndex(String remoteName, String bundledAsset) async {
+    if (remoteBaseUrl.isNotEmpty) {
+      try {
+        final base = remoteBaseUrl.replaceAll(RegExp(r'/+$'), '');
+        final res = await _dio.get<String>('$base/$remoteName',
+            options: Options(responseType: ResponseType.plain));
+        final body = res.data;
+        if (body != null && body.isNotEmpty) return body;
+      } catch (e) {
+        debugPrint('RegionPackService: remote $remoteName failed ($e); using bundled');
+      }
+    }
+    return rootBundle.loadString(bundledAsset);
   }
 
   // --- resolution ----------------------------------------------------------
@@ -151,6 +165,7 @@ class RegionPackService {
       final file = File(await _packPath(pack));
       await file.parent.create(recursive: true);
       await file.writeAsBytes(bytes, flush: true);
+      notifyListeners(); // a pack just became available — let the Map/Now refresh
       return true;
     } catch (e) {
       debugPrint('RegionPackService: download ${pack.id} failed ($e)');

@@ -30,7 +30,18 @@ const VERSION = '2026-06-09';
 
 // --base-url <url> → emit remote (downloadable) manifest entries.
 const baseUrlIdx = process.argv.indexOf('--base-url');
-const BASE_URL = baseUrlIdx >= 0 ? process.argv[baseUrlIdx + 1] : null;
+let BASE_URL = baseUrlIdx >= 0 ? process.argv[baseUrlIdx + 1] : null;
+if (BASE_URL) {
+  // Guard against the two common mistakes: the clone URL (repo.git) and a
+  // trailing slash. Warn if it isn't a release *download* URL (e.g. the /tag/
+  // release page, which won't serve the asset files).
+  BASE_URL = BASE_URL.replace(/\.git(?=\/|$)/, '').replace(/\/+$/, '');
+  if (!/\/releases\/download\//.test(BASE_URL)) {
+    console.warn('  (warning) --base-url should be a release DOWNLOAD url:');
+    console.warn('    https://github.com/<you>/<repo>/releases/download/<tag>');
+    console.warn(`    got: ${BASE_URL}`);
+  }
+}
 
 // source file → human access label (kept identical to the old labels so
 // guidance classification is unchanged).
@@ -152,6 +163,6 @@ console.log(`\n${manifestPacks.length} packs → assets/packs/  (${BASE_URL ? 'r
 if (!BASE_URL) {
   console.log('Bundled mode: ensure pubspec bundles assets/packs/ (whole dir).');
 } else {
-  console.log(`Remote mode: upload assets/packs/<id>.geojson to ${BASE_URL}`);
-  console.log('and set RegionPackService.remoteManifestUrl to the manifest URL.');
+  console.log(`Remote mode: upload the packs + manifest.json + coverage.geojson to ${BASE_URL}`);
+  console.log('Optionally set RegionPackService.remoteBaseUrl to that base to update without app rebuilds.');
 }

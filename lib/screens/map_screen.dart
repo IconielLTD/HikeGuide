@@ -7,6 +7,7 @@ import '../services/access_land_service.dart';
 import '../services/geo/geometry.dart';
 import '../services/live_location.dart';
 import '../services/os_maps_key_store.dart';
+import '../services/region_pack_service.dart';
 import '../services/trip_recorder.dart';
 import '../theme/app_theme.dart';
 import '../widgets/access_info_sheet.dart';
@@ -17,7 +18,10 @@ import '../widgets/pulsing_gps_marker.dart';
 /// attribution, a pulsing amber GPS marker, and a grid-ref/declination panel.
 /// Access overlays + historical routes come in later phases.
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key});
+  /// Jump to the Info tab (so the user can download a region pack). Wired by
+  /// RootNav, same as NowScreen.
+  final VoidCallback? onOpenInfo;
+  const MapScreen({super.key, this.onOpenInfo});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -57,6 +61,11 @@ class _MapScreenState extends State<MapScreen> {
   List<AccessParcel> _accessParcels = const [];
   String? _accessViewSig; // last viewport we refreshed for (skip duplicates)
 
+  // Label of the region pack covering the user's location that ISN'T downloaded
+  // yet (null when it's downloaded, or there's no coverage / no fix). Drives the
+  // "download your region" prompt — packs are fetched on demand, never auto.
+  String? _missingPackLabel;
+
   @override
   void initState() {
     super.initState();
@@ -72,13 +81,45 @@ class _MapScreenState extends State<MapScreen> {
     _loadAccessFlag();
     // Redraw the live trip polyline as new points arrive.
     TripRecorder.instance.addListener(_onTripChange);
+    // Re-draw the access overlay the moment a region pack finishes downloading.
+    RegionPackService.instance.addListener(_onPacksChanged);
+    _checkAccessAvailability();
   }
 
   @override
   void dispose() {
     _live.removeListener(_onLiveLocation);
     TripRecorder.instance.removeListener(_onTripChange);
+    RegionPackService.instance.removeListener(_onPacksChanged);
     super.dispose();
+  }
+
+  // A region pack just became available. Drop the "skip duplicate viewport"
+  // guard and re-pull the overlay so the new polygons appear without a restart.
+  void _onPacksChanged() {
+    if (!mounted) return;
+    _accessViewSig = null;
+    if (!_hasAccessData) {
+      _loadAccessFlag();
+    } else if (_mapReady) {
+      _refreshAccess(_mapController.camera);
+    }
+    _checkAccessAvailability();
+  }
+
+  /// Work out whether the user's current region has a pack that hasn't been
+  /// downloaded yet, so the Map can prompt them to fetch it. Cheap (offline
+  /// coverage point-in-polygon + a file-exists check); only rebuilds on change.
+  Future<void> _checkAccessAvailability() async {
+    final at = _gps;
+    String? missing;
+    if (at != null) {
+      final svc = RegionPackService.instance;
+      final pack = await svc.packFor(at);
+      if (pack != null && !await svc.isAvailable(pack)) missing = pack.label;
+    }
+    if (!mounted || missing == _missingPackLabel) return;
+    setState(() => _missingPackLabel = missing);
   }
 
   // Track what the polyline actually depends on, so step-counter events (which
@@ -111,6 +152,7 @@ class _MapScreenState extends State<MapScreen> {
       _gpsReason = _live.reason;
       _locating = _live.locating;
     });
+    _checkAccessAvailability();
     if (fix == null || !_mapReady) return;
     if (!_hasCentred) {
       _hasCentred = true;
@@ -372,7 +414,7 @@ class _MapScreenState extends State<MapScreen> {
         if (_gps != null && !_followMe)
           Positioned(
             right: 12,
-            bottom: _accessStatus != null ? 132 : 92,
+            bottom: (_accessStatus != null || _missingPackLabel != null) ? 132 : 92,
             child: _RecenterButton(onTap: _recenter),
           ),
         // Field info panel along the bottom: tappable land-access banner (live;
@@ -394,7 +436,17 @@ class _MapScreenState extends State<MapScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_accessStatus != null) ...[
+                    if (_missingPackLabel != null) ...[
+                      _DownloadPrompt(
+                        region: _missingPackLabel!,
+                        onTap: widget.onOpenInfo,
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: AppColors.secondaryText.withValues(alpha: 0.15),
+                      ),
+                    ] else if (_accessStatus != null) ...[
                       _AccessBanner(
                         status: _accessStatus!,
                         onTap: () => showAccessInfo(context, _accessStatus),
@@ -455,6 +507,55 @@ class _StatusPill extends StatelessWidget {
             style: const TextStyle(color: AppColors.primaryText, fontSize: 15),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Shown in the bottom panel when the user is in a region whose access pack
+/// hasn't been downloaded yet. Access data is fetched on demand (never
+/// automatically), so this nudges them to the Info tab to download it once.
+class _DownloadPrompt extends StatelessWidget {
+  final String region;
+  final VoidCallback? onTap;
+  const _DownloadPrompt({required this.region, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            const Icon(Icons.cloud_download_outlined,
+                size: 20, color: AppColors.accent),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'No access data for this area yet',
+                    style: TextStyle(
+                        color: AppColors.primaryText,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Download the $region pack in the Info tab',
+                    style: const TextStyle(
+                        color: AppColors.secondaryText, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            if (onTap != null)
+              const Icon(Icons.chevron_right, size: 18, color: AppColors.accent),
+          ],
+        ),
       ),
     );
   }

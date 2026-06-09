@@ -7,7 +7,8 @@
       "label": "London",
       "version": "2026-06-09",
       "sizeBytes": 815408,
-      "asset": "assets/packs/london.geojson"
+      "url": "https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/london.geojson",
+      "sha256": "9fa1193136b1fd560288e2b95f2a6f83534516d729896b4aaa20236fcae0c3b9"
     },
     {
       "id": "north-east-england",
@@ -15,7 +16,8 @@
       "label": "North East England",
       "version": "2026-06-09",
       "sizeBytes": 3554510,
-      "asset": "assets/packs/north-east-england.geojson"
+      "url": "https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/north-east-england.geojson",
+      "sha256": "4aa7a79675cab08c0f6f460b5f54e35888f2f639ccff2be03a80d094343b801d"
     },
     {
       "id": "north-west-england",
@@ -23,7 +25,8 @@
       "label": "North West England",
       "version": "2026-06-09",
       "sizeBytes": 6772903,
-      "asset": "assets/packs/north-west-england.geojson"
+      "url": "https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/north-west-england.geojson",
+      "sha256": "7425546024ea35c8e05e497da3baa75dc31c0c6349f4b89e173d49ad135fb0d7"
     },
     {
       "id": "yorkshire-and-the-humber",
@@ -31,7 +34,8 @@
       "label": "Yorkshire and the Humber",
       "version": "2026-06-09",
       "sizeBytes": 6971846,
-      "asset": "assets/packs/yorkshire-and-the-humber.geojson"
+      "url": "https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/yorkshire-and-the-humber.geojson",
+      "sha256": "b98f8ab87e081fd90e90386c30b52db2902327a40b25578930509a5280da6bd4"
     },
     {
       "id": "east-midlands",
@@ -39,7 +43,8 @@
       "label": "East Midlands",
       "version": "2026-06-09",
       "sizeBytes": 2358579,
-      "asset": "assets/packs/east-midlands.geojson"
+      "url": "https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/east-midlands.geojson",
+      "sha256": "748147b821992ea9ee2dc534863b443e40559f039f2aa3865debdd0f8068cc1d"
     },
     {
       "id": "west-midlands",
@@ -47,7 +52,8 @@
       "label": "West Midlands",
       "version": "2026-06-09",
       "sizeBytes": 2218211,
-      "asset": "assets/packs/west-midlands.geojson"
+      "url": "https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/west-midlands.geojson",
+      "sha256": "fde0664264ac35d9b2c6bc368dad44ccf854cfc4f6ac14abc9b0e757f9779b06"
     },
     {
       "id": "east-of-england",
@@ -55,7 +61,8 @@
       "label": "East of England",
       "version": "2026-06-09",
       "sizeBytes": 1651393,
-      "asset": "assets/packs/east-of-england.geojson"
+      "url": "https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/east-of-england.geojson",
+      "sha256": "f4c901c1a2513310c41a5147883e784fccb4694f8989ab6d84b3e3c3041b07a0"
     },
     {
       "id": "south-east-england",
@@ -63,7 +70,8 @@
       "label": "South East England",
       "version": "2026-06-09",
       "sizeBytes": 4632221,
-      "asset": "assets/packs/south-east-england.geojson"
+      "url": "https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/south-east-england.geojson",
+      "sha256": "7940fe636c10e2dbc79be0149682da0acf496167d1ef77435d7e99bb674d8ee5"
     },
     {
       "id": "south-west-england",
@@ -71,7 +79,8 @@
       "label": "South West England",
       "version": "2026-06-09",
       "sizeBytes": 5762795,
-      "asset": "assets/packs/south-west-england.geojson"
+      "url": "https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/south-west-england.geojson",
+      "sha256": "5ebeb9d7f4ca2836fa03505ec2516494d9eef497de9c786b79fe75c9f7bfba38"
     }
   ]
 }

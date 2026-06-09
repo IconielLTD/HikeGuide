@@ -193,6 +193,12 @@ class _InfoScreenState extends State<InfoScreen> {
             'access, fire permission, and any plant identification before acting.',
             style: TextStyle(color: AppColors.secondaryText, fontSize: 15, height: 1.5),
           ),
+          const SizedBox(height: 24),
+          // Year is read at build time, so it always shows the current year.
+          Text(
+            '© ${DateTime.now().year} Iconiel Ltd / Nathan Osborn',
+            style: const TextStyle(color: AppColors.secondaryText, fontSize: 13),
+          ),
         ],
       ),
     );

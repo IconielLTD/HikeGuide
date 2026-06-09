@@ -38,7 +38,7 @@ class _RootNavState extends State<RootNav> {
     // type, so the map keeps its view and the Now tab keeps its loaded cards.
     final screens = <Widget>[
       NowScreen(onOpenInfo: _goToInfo),
-      const MapScreen(),
+      MapScreen(onOpenInfo: _goToInfo),
       const GuidesScreen(),
       const JournalScreen(),
       const InfoScreen(),
