@@ -9,7 +9,30 @@ of the land you're standing on), and offers short, plain-English lessons and
 realistic things to try — aimed at adults with **no** prior bushcraft or
 Ordnance Survey experience.
 
-> **Status:** Android-only, in active field testing. Built with Flutter 3.44.x / Dart 3.5+.
+> **Status:** Android-only. **v1.0.0 released** — see [Install](#install) below. Built with Flutter 3.44.x / Dart 3.5+.
+
+## Install
+
+HikeGuide is Android-only and distributed as a sideloaded APK (it's not on any
+app store).
+
+1. On your Android phone, open the **[latest release](https://github.com/IconielLTD/HikeGuide/releases/latest)** and download `app-release.apk` (~53 MB).
+2. Tap the downloaded file. The first time, Android will ask to **allow installs
+   from this source** — enable it, then install.
+3. Open HikeGuide and grant **location** (and optionally **physical activity**,
+   which is used for step counting).
+
+To get the most out of it:
+
+- **Add an Anthropic API key** in the **Info** tab to generate guides and
+  opportunities — it's bring-your-own-key (get one at
+  <https://console.anthropic.com/> and add a little credit). The app runs
+  without it, but those are some of the best parts.
+- **Download your region's access pack** in **Info → Offline regions** once,
+  ideally on Wi-Fi; after that the access map works fully offline in the field.
+- *(Optional)* add a free **OS Maps key** for the OS "Outdoor" basemap.
+
+Your trips and location history stay on your device.
 
 ## Features
 

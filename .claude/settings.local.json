@@ -72,7 +72,10 @@
       "Bash(curl -s -L -o /dev/null -w \"east-midlands.geojson -> HTTP %{http_code}, final: %{url_effective}\\\\n\" \"https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/east-midlands.geojson\")",
       "Bash(node spike/build_pack.mjs --base-url https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09)",
       "Bash(sed -n '5p')",
-      "Bash(node -e \"const c=require\\('crypto'\\),fs=require\\('fs'\\);console.log\\('local file sha256:', c.createHash\\('sha256'\\).update\\(fs.readFileSync\\('assets/packs/east-midlands.geojson'\\)\\).digest\\('hex'\\)\\)\")"
+      "Bash(node -e \"const c=require\\('crypto'\\),fs=require\\('fs'\\);console.log\\('local file sha256:', c.createHash\\('sha256'\\).update\\(fs.readFileSync\\('assets/packs/east-midlands.geojson'\\)\\).digest\\('hex'\\)\\)\")",
+      "Bash(curl -s -L -r 0-0 -o /dev/null -w \" HTTP %{http_code} \\(total size: %{size_download}+ bytes via range\\)\\\\n\" \"https://github.com/IconielLTD/HikeGuide/releases/download/hikeguide-v1-0-0/app-release.apk\")",
+      "Bash(curl -sIL \"https://github.com/IconielLTD/HikeGuide/releases/download/hikeguide-v1-0-0/app-release.apk\")",
+      "Bash(curl -s -L -o /dev/null -w \"  east-midlands.geojson -> HTTP %{http_code}\\\\n\" \"https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/east-midlands.geojson\")"
     ]
   }
 }
