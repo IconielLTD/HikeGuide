@@ -221,6 +221,16 @@ class CacheRepository {
     return true;
   }
 
+  // --- one-time UI notices -------------------------------------------------
+  /// Whether the one-time notice keyed by [id] has been shown before. Used to
+  /// auto-pop an info modal only once ever (e.g. the Scotland access intro),
+  /// persisted across launches in the meta table.
+  Future<bool> hasShownNotice(String id) async =>
+      (await _getMeta('notice_$id')) == '1';
+
+  /// Mark the one-time notice [id] as shown so it never auto-pops again.
+  Future<void> markNoticeShown(String id) => _setMeta('notice_$id', '1');
+
   /// Drop cached opportunities + guides when the content prompts change, so the
   /// improved wording/length regenerates on demand. Like the access reconcile:
   /// one keyed read per launch; the clears run only when the version differs.

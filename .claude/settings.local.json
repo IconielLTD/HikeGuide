@@ -75,7 +75,9 @@
       "Bash(node -e \"const c=require\\('crypto'\\),fs=require\\('fs'\\);console.log\\('local file sha256:', c.createHash\\('sha256'\\).update\\(fs.readFileSync\\('assets/packs/east-midlands.geojson'\\)\\).digest\\('hex'\\)\\)\")",
       "Bash(curl -s -L -r 0-0 -o /dev/null -w \" HTTP %{http_code} \\(total size: %{size_download}+ bytes via range\\)\\\\n\" \"https://github.com/IconielLTD/HikeGuide/releases/download/hikeguide-v1-0-0/app-release.apk\")",
       "Bash(curl -sIL \"https://github.com/IconielLTD/HikeGuide/releases/download/hikeguide-v1-0-0/app-release.apk\")",
-      "Bash(curl -s -L -o /dev/null -w \"  east-midlands.geojson -> HTTP %{http_code}\\\\n\" \"https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/east-midlands.geojson\")"
+      "Bash(curl -s -L -o /dev/null -w \"  east-midlands.geojson -> HTTP %{http_code}\\\\n\" \"https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/east-midlands.geojson\")",
+      "PowerShell(flutter test *)",
+      "PowerShell(node spike/fetch_access.mjs --nation Scotland)"
     ]
   }
 }

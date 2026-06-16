@@ -315,6 +315,41 @@
           ]
         ]
       }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "packId": "scotland",
+        "nation": "Scotland",
+        "label": "Scotland"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -8.8,
+              54.55
+            ],
+            [
+              -0.5,
+              54.55
+            ],
+            [
+              -0.5,
+              61.1
+            ],
+            [
+              -8.8,
+              61.1
+            ],
+            [
+              -8.8,
+              54.55
+            ]
+          ]
+        ]
+      }
     }
   ]
 }

@@ -71,4 +71,17 @@ void main() {
     expect(trips.length, 1);
     expect(trips.first.title, 'After upgrade');
   });
+
+  test('one-time notice flag is false until marked, then persists', () async {
+    final repo = CacheRepository.instance;
+    expect(await repo.hasShownNotice('scotland_access'), isFalse);
+    await repo.markNoticeShown('scotland_access');
+    expect(await repo.hasShownNotice('scotland_access'), isTrue);
+
+    // Survives the handle being reopened (i.e. a relaunch reads the same flag).
+    await repo.resetForTest();
+    expect(await repo.hasShownNotice('scotland_access'), isTrue);
+    // An unrelated notice id is independent.
+    expect(await repo.hasShownNotice('something_else'), isFalse);
+  });
 }

@@ -81,6 +81,15 @@
       "sizeBytes": 5762795,
       "url": "https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/south-west-england.geojson",
       "sha256": "5ebeb9d7f4ca2836fa03505ec2516494d9eef497de9c786b79fe75c9f7bfba38"
+    },
+    {
+      "id": "scotland",
+      "nation": "Scotland",
+      "label": "Scotland",
+      "version": "2026-06-09",
+      "sizeBytes": 72481,
+      "url": "https://github.com/IconielLTD/HikeGuide/releases/download/access-2026-06-09/scotland.geojson",
+      "sha256": "7fd3c737cd033f52996e3099752447661badfdff0d0ea3772d63c1ae189ddaae"
     }
   ]
 }

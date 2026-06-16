@@ -20,7 +20,7 @@ import { readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { REGIONS, NATION } from './regions.mjs';
+import { REGIONS } from './regions.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = join(root, 'assets', 'packs');
@@ -43,11 +43,21 @@ if (BASE_URL) {
   }
 }
 
-// source file → human access label (kept identical to the old labels so
-// guidance classification is unchanged).
+// source file → { nation, human access label }. The label is the AccessParcel
+// `source` the app classifies (models/access_guidance.dart): England labels are
+// kept identical so existing guidance is unchanged; the Scotland labels contain
+// "camping"/"byelaw" and "military" so the classifier routes them to the
+// campingByelawZone / militaryNoAccess categories. A parcel is only assigned to
+// regions of its OWN nation, so the per-nation access model stays clean.
 const inputs = [
-  { file: 'assets/access/crow_open_access.geojson', source: 'Open Access (CRoW)' },
-  { file: 'assets/access/forestry_england.geojson', source: 'Forestry England' },
+  { file: 'assets/access/crow_open_access.geojson', nation: 'England', source: 'Open Access (CRoW)' },
+  { file: 'assets/access/forestry_england.geojson', nation: 'England', source: 'Forestry England' },
+  { file: 'assets/access/scotland_camping_byelaws.geojson', nation: 'Scotland', source: 'Camping management zone (byelaws)' },
+  // MOD land is INTENTIONALLY NOT MAPPED — the live-firing/red-flag advice ships
+  // in the general in-app Scotland notice instead (see fetch_access.mjs). The
+  // source file is never produced, so build_pack skips this line cleanly; it's
+  // kept only so a verified secured-estate source could slot in later.
+  { file: 'assets/access/scotland_mod.geojson', nation: 'Scotland', source: 'Military (MOD) — no public access' },
 ];
 
 // Compute a feature's bbox so we can test region overlap without re-walking
@@ -72,9 +82,10 @@ function featureBbox(geometry) {
 const bboxOverlap = (a, b) =>
   a.xmin <= b.xmax && a.xmax >= b.xmin && a.ymin <= b.ymax && a.ymax >= b.ymin;
 
-// Load + tag every source feature once.
+// Load + tag every source feature once (with its nation, so a parcel is only
+// ever assigned to a region of the same nation).
 const all = [];
-for (const { file, source } of inputs) {
+for (const { file, nation, source } of inputs) {
   let raw;
   try {
     raw = JSON.parse(readFileSync(join(root, file), 'utf8'));
@@ -85,10 +96,10 @@ for (const { file, source } of inputs) {
   let n = 0;
   for (const f of raw.features ?? []) {
     if (!f || !f.geometry) continue;
-    all.push({ source, geometry: f.geometry, bbox: featureBbox(f.geometry) });
+    all.push({ nation, source, geometry: f.geometry, bbox: featureBbox(f.geometry) });
     n++;
   }
-  console.log(`  ${source}: ${n} features`);
+  console.log(`  ${source} [${nation}]: ${n} features`);
 }
 if (all.length === 0) {
   console.error('No source features — nothing to build.');
@@ -100,7 +111,7 @@ const manifestPacks = [];
 
 for (const region of REGIONS) {
   const feats = all
-    .filter((f) => bboxOverlap(f.bbox, region.bbox))
+    .filter((f) => f.nation === region.nation && bboxOverlap(f.bbox, region.bbox))
     .map((f) => ({ type: 'Feature', properties: { source: f.source }, geometry: f.geometry }));
   if (feats.length === 0) {
     console.log(`  ${region.id}: 0 parcels — skipped`);
@@ -110,7 +121,7 @@ for (const region of REGIONS) {
   const pack = {
     type: 'FeatureCollection',
     packId: region.id,
-    nation: NATION,
+    nation: region.nation,
     version: VERSION,
     features: feats,
   };
@@ -125,7 +136,7 @@ for (const region of REGIONS) {
   const { xmin, ymin, xmax, ymax } = region.bbox;
   coverageFeatures.push({
     type: 'Feature',
-    properties: { packId: region.id, nation: NATION, label: region.label },
+    properties: { packId: region.id, nation: region.nation, label: region.label },
     geometry: {
       type: 'Polygon',
       coordinates: [[
@@ -136,7 +147,7 @@ for (const region of REGIONS) {
 
   const entry = {
     id: region.id,
-    nation: NATION,
+    nation: region.nation,
     label: region.label,
     version: VERSION,
     sizeBytes: size,

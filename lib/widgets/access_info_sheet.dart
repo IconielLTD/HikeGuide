@@ -3,17 +3,22 @@ import 'package:flutter/material.dart';
 import '../models/access_guidance.dart';
 import '../theme/app_theme.dart';
 
-/// Accent colour for an access category. CRoW / Forestry match the Map overlay
-/// fills so the banner reads as "you're in the green/teal area"; the limited /
-/// unknown regimes use a calm warning amber and a muted grey.
+/// Accent colour for an access category. CRoW / Forestry / Scotland's open
+/// access match the Map overlay fills so the banner reads as "you're in the
+/// green/teal area"; restriction zones use the warning red, the limited regime a
+/// calm amber, and unknown a muted grey.
 Color accessCategoryColor(AccessCategory category) {
   switch (category) {
     case AccessCategory.crowOpenAccess:
+    case AccessCategory.scotlandOpenAccess:
       return AppColors.openAccess;
     case AccessCategory.forestryEngland:
       return AppColors.forestryEngland;
+    case AccessCategory.campingByelawZone:
     case AccessCategory.noMappedRight:
       return AppColors.accent;
+    case AccessCategory.militaryNoAccess:
+      return AppColors.fire;
     case AccessCategory.unknown:
       return AppColors.secondaryText;
   }
@@ -22,13 +27,35 @@ Color accessCategoryColor(AccessCategory category) {
 IconData accessCategoryIcon(AccessCategory category) {
   switch (category) {
     case AccessCategory.crowOpenAccess:
+    case AccessCategory.scotlandOpenAccess:
       return Icons.directions_walk;
     case AccessCategory.forestryEngland:
       return Icons.forest;
+    case AccessCategory.campingByelawZone:
+      return Icons.cabin;
+    case AccessCategory.militaryNoAccess:
+      return Icons.dangerous;
     case AccessCategory.noMappedRight:
       return Icons.fork_right;
     case AccessCategory.unknown:
       return Icons.help_outline;
+  }
+}
+
+/// The relevant country access code to cite in the disclaimer: Scotland's
+/// categories point to the Scottish Outdoor Access Code; England/Wales to the
+/// Countryside Code.
+String _accessCodeFor(AccessCategory category) {
+  switch (category) {
+    case AccessCategory.scotlandOpenAccess:
+    case AccessCategory.militaryNoAccess:
+    case AccessCategory.campingByelawZone:
+      return 'Scottish Outdoor Access Code';
+    case AccessCategory.crowOpenAccess:
+    case AccessCategory.forestryEngland:
+    case AccessCategory.noMappedRight:
+    case AccessCategory.unknown:
+      return 'Countryside Code';
   }
 }
 
@@ -121,10 +148,10 @@ class _AccessInfoSheet extends StatelessWidget {
                 _NoteLine(text: g.note!),
               ],
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'General guidance, not legal advice. Always follow local signs '
-                'and the Countryside Code.',
-                style: TextStyle(
+                'and the ${_accessCodeFor(category)}.',
+                style: const TextStyle(
                     color: AppColors.secondaryText,
                     fontSize: 12.5,
                     height: 1.4,

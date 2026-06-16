@@ -1,8 +1,6 @@
 # HikeGuide
 
-A bushcraft field companion for England. HikeGuide helps people connect with
-nature by enabling them to feel more like they *could survive out there* — comfortable, oriented, and
-unafraid. The aim is to give them their own personal beginner's bushcraft guide on their device.
+A bushcraft field companion for England. HikeGuide helps people connect with nature by enabling them to feel more like they could survive out there — comfortable, oriented, and unafraid. The aim is to give them their own personal beginner's bushcraft guide on their device.
 
 It reads where you are, tells you what's around you (woodland, water, the rules
 of the land you're standing on), and offers short, plain-English lessons and

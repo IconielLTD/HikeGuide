@@ -26,16 +26,29 @@ the app loads the pack for wherever you are.
 This pulls the real data and bundles it straight into the app. Good for
 development and for covering more of England.
 
-### 1. Fetch the source data (all of England)
+### 1. Fetch the source data
 
 ```powershell
-node spike/fetch_access.mjs
+node spike/fetch_access.mjs                  # all enabled layers (England + Scotland)
+node spike/fetch_access.mjs --nation Scotland   # just Scotland's layers (small)
 ```
 
-This downloads every CRoW + Forestry polygon for England from the public
-Ordnance-Survey/ArcGIS servers and writes two files into `assets/access/`. It's
-a **large download** — run it on wifi, and give it a few minutes. If it stops
-with a network/timeout error, just run it again (it starts over cleanly).
+This downloads each layer from the public Ordnance-Survey/ArcGIS servers over
+its nation's bbox and writes one file per layer into `assets/access/`. The
+**England** layers (every CRoW + Forestry polygon) are a **large download** — run
+on wifi and give it a few minutes; if it stops with a network/timeout error,
+just run it again (it starts over cleanly). The **Scotland** layer (Loch Lomond
+& The Trossachs camping byelaw zones) is tiny — use `--nation Scotland` to fetch
+it without re-downloading England.
+
+> **Scotland's access model is the inverse of England's.** Scotland is
+> open-access by default (right to roam), so the marked polygons are
+> *restrictions*, not access grants. Today that's the camping byelaw zones.
+> **MOD/military land** is also an exclusion, but no authoritative public
+> Scotland-wide dataset has been confirmed, so that layer is left **disabled** in
+> `fetch_access.mjs` (the public ArcGIS hits are planning "consultation zones",
+> not access bans). The app already classifies a `military`-labelled source, so
+> wiring a verified MOD FeatureServer later needs no app change.
 
 ### 2. Slice it into region packs
 
@@ -43,10 +56,12 @@ with a network/timeout error, just run it again (it starts over cleanly).
 node spike/build_pack.mjs
 ```
 
-This splits the source into one pack per English region and writes them, plus
-`coverage.geojson` (which region covers a point) and `manifest.json` (the list
-of packs), into `assets/packs/`. It prints how many parcels landed in each
-region.
+This splits the source into one pack per region (England's nine regions plus a
+single Scotland pack) and writes them, plus `coverage.geojson` (which region
+covers a point, and the nation whose access law applies there) and
+`manifest.json` (the list of packs), into `assets/packs/`. Each parcel is only
+assigned to regions of its **own nation**, so the per-nation access model stays
+clean. It prints how many parcels landed in each region.
 
 ### 3. See it in the app
 

@@ -25,6 +25,7 @@ class LiveLocation extends ChangeNotifier with WidgetsBindingObserver {
 
   LatLng? _current;
   String? _accessStatus;
+  String? _nation; // nation whose access law applies at _current (offline)
   String? _reason; // user-facing reason when there's no fix
   bool _locating = true;
   bool _started = false;
@@ -36,6 +37,11 @@ class LiveLocation extends ChangeNotifier with WidgetsBindingObserver {
   /// Land-access classification at [current] (e.g. "Open Access (CRoW)"), or
   /// null before the first reading / when no access data is bundled.
   String? get accessStatus => _accessStatus;
+
+  /// Nation whose access law applies at [current] ("England" | "Scotland" |
+  /// "Wales"), or null before the first reading / when uncovered. Known offline
+  /// from the bundled coverage index, even before a pack is downloaded.
+  String? get nation => _nation;
 
   /// Why there's no fix (permission/services), for a calm status message.
   String? get reason => _reason;
@@ -142,10 +148,17 @@ class LiveLocation extends ChangeNotifier with WidgetsBindingObserver {
   /// a stale async result overwriting a newer fix.
   Future<void> _refreshAccess(LatLng at) async {
     final status = await AccessLandService.instance.statusAt(at);
+    final nation = await RegionPackService.instance.nationAt(at);
     if (_current != at) return;
+    var changed = false;
     if (status != _accessStatus) {
       _accessStatus = status;
-      notifyListeners();
+      changed = true;
     }
+    if (nation != _nation) {
+      _nation = nation;
+      changed = true;
+    }
+    if (changed) notifyListeners();
   }
 }

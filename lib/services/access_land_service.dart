@@ -14,7 +14,19 @@ import 'region_pack_service.dart';
 /// detections (see CacheRepository.reconcileAccessDataVersion) so the new logic
 /// re-runs per cell. A hand-set constant on purpose: the check costs one tiny
 /// DB read at startup and never loads the pack GeoJSON just to verify a version.
-const String kAccessDataVersion = 'england-regions-2026-06-09';
+const String kAccessDataVersion = 'gb-regions-2026-06-16';
+
+/// Status returned by [AccessLandService.statusAt] when the point is in Scotland
+/// but inside no mapped restriction parcel. Scotland's access model is
+/// open-by-default (right of responsible access under the Land Reform (Scotland)
+/// Act 2003), so the absence of a parcel means "you may roam here" — the inverse
+/// of England/Wales, where it means "no mapped right". Classified by
+/// accessCategoryForStatus (models/access_guidance.dart) into scotlandOpenAccess.
+const String kScotlandOpenAccessStatus = 'Open access — right to roam';
+
+/// Status returned for England/Wales when the point is inside no open-access
+/// parcel — access is limited to public rights of way.
+const String kNoMappedRightStatus = 'No mapped open-access right';
 
 /// Background-isolate entry point (compute): parse one pack's GeoJSON into
 /// parcels. Top-level so it can be sent to another isolate.
@@ -86,8 +98,9 @@ class AccessLandService {
   }
 
   /// Access label for [at], or null if we have no data to judge from
-  /// ("unknown"). Returns the explicit "not in any parcel" label when data IS
-  /// loaded but the point falls outside every parcel.
+  /// ("unknown"). When data IS loaded but the point falls outside every parcel,
+  /// returns the nation's default: Scotland → open-access (right to roam),
+  /// England/Wales → no mapped right. (See [kScotlandOpenAccessStatus].)
   Future<String?> statusAt(LatLng at) async {
     final pack = await packs.packFor(at);
     if (pack == null) return null;
@@ -96,7 +109,9 @@ class AccessLandService {
     for (final p in parcels) {
       if (p.polygon.contains(at.longitude, at.latitude)) return p.source;
     }
-    return 'No mapped open-access right';
+    return pack.nation == 'Scotland'
+        ? kScotlandOpenAccessStatus
+        : kNoMappedRightStatus;
   }
 
   /// Parcels whose bbox overlaps [view] — for drawing the Map overlay. Resolves
