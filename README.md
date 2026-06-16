@@ -165,9 +165,22 @@ LICENSE                PolyForm Noncommercial 1.0.0 (no commercial use)
 
 - **CRoW Open Access** © Natural England, under the Open Government Licence.
 - **Forestry England** legal boundary © Crown copyright.
+- **Camping management byelaw zones (Scotland)** © Loch Lomond & The Trossachs
+  National Park Authority.
 - **Map tiles & environment data** © OpenStreetMap contributors (via Overpass).
 
 Regenerate the bundled access overlays with `spike/fetch_access.mjs`.
+
+## Credits
+
+Created and maintained by **Nathan Osborn** ([IconielLTD](https://github.com/IconielLTD)).
+
+HikeGuide was built with significant AI assistance, disclosed here for
+transparency: **[Claude Code](https://claude.com/claude-code)** (Anthropic's
+Claude) was used throughout as a pair‑programming assistant for design,
+implementation, and review. Commits that were co‑written carry a
+`Co-Authored-By: Claude` trailer, so the AI's contribution is visible in the git
+history. All direction, decisions, and final review remain the author's.
 
 ## License
 
