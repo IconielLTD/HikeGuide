@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'cache_repository.dart';
 import 'geo/geometry.dart';
+import 'live_location.dart';
 
 /// Records a GPS trip into the trips / route_points tables.
 ///
@@ -26,6 +27,17 @@ class TripRecorder extends ChangeNotifier {
   /// Only log/accumulate once the user has moved this far since the last point.
   static const int _distanceFilterMetres = 8;
 
+  /// Drop a fix whose reported accuracy radius is worse than this — coarse
+  /// network/cell fixes (the "jumped to the town centre" bug) report large
+  /// accuracy, while even canopy GPS usually stays well under it.
+  static const double _maxAccuracyMetres = 100;
+
+  /// Drop a fix implying a higher speed than this from the last kept point — an
+  /// impossible teleport, i.e. a bad fix. ~35 m/s ≈ 126 km/h, far above
+  /// on-foot/cycling; a genuine recording gap stays well under it because its
+  /// time delta is large (see [acceptFix]).
+  static const double _maxSpeedMetresPerSecond = 35;
+
   /// A point counts as "doubling back" when it passes within this distance of
   /// an earlier part of the same track…
   static const double _retraceRadiusMetres = 18;
@@ -40,6 +52,7 @@ class TripRecorder extends ChangeNotifier {
   final List<LatLng> _points = [];
   final List<bool> _retraced = [];
   LatLng? _last;
+  DateTime? _lastAt; // fix time of [_last], for the teleport (speed) gate
   StreamSubscription<Position>? _sub;
   String? _lastError;
 
@@ -109,8 +122,19 @@ class TripRecorder extends ChangeNotifier {
     _points.clear();
     _retraced.clear();
     _last = null;
+    _lastAt = null;
     _stepBaseline = null;
     _steps = null;
+    // Release the live-position stream FIRST (awaited): geolocator only promotes
+    // a position stream to a foreground service when no other location stream is
+    // already running. If the live stream were still active here, our
+    // foregroundNotificationConfig would be silently ignored — no notification
+    // and tracking that dies the moment the app backgrounds (the field-test bug).
+    // _tripId is already set, so LiveLocation won't re-acquire in the meantime.
+    await LiveLocation.instance.suspendForRecording();
+    // Best-effort: let the ongoing-recording notification show (Android 13+).
+    // The service still runs if denied; the notification just stays hidden.
+    await _ensureNotificationPermission();
     _sub = Geolocator.getPositionStream(locationSettings: _locationSettings())
         .listen(_onPosition, onError: (Object e) {
       _lastError = 'Lost the location signal.';
@@ -119,6 +143,19 @@ class TripRecorder extends ChangeNotifier {
     _startStepCounter(); // best-effort; recording proceeds either way
     notifyListeners();
     return true;
+  }
+
+  /// Request the Android 13+ notification permission so the foreground-service
+  /// notification is visible. Best-effort and silent on failure — the service
+  /// runs regardless; a hidden notification only costs visibility.
+  Future<void> _ensureNotificationPermission() async {
+    try {
+      if (await Permission.notification.isDenied) {
+        await Permission.notification.request();
+      }
+    } catch (_) {
+      // Permission plugin unavailable — ignore; recording proceeds.
+    }
   }
 
   /// Best-effort step tracking: requests the activity-recognition permission and
@@ -144,10 +181,26 @@ class TripRecorder extends ChangeNotifier {
 
   Future<void> _onPosition(Position p) async {
     final pt = LatLng(p.latitude, p.longitude);
+    final at = p.timestamp;
+    // Reject fixes that would corrupt the track: a coarse (low-accuracy) fix —
+    // the "jumped to the town centre" bug — or an impossible teleport. A real
+    // recording gap (we were backgrounded) gives a far point with a LARGE time
+    // delta, so its implied speed stays low and it's kept; we just can't
+    // recover the path between, so the polyline bridges it with a line.
+    if (!acceptFix(
+      accuracyMetres: p.accuracy,
+      candidate: pt,
+      candidateAt: at,
+      lastAccepted: _last,
+      lastAt: _lastAt,
+    )) {
+      return;
+    }
     if (_last != null) _distanceMetres += haversineMetres(_last!, pt);
     // Flag against the track laid down so far, before this point joins it.
     _retraced.add(_isRetrace(_points, pt));
     _last = pt;
+    _lastAt = at;
     _points.add(pt);
     final id = _tripId;
     if (id != null) {
@@ -171,6 +224,7 @@ class TripRecorder extends ChangeNotifier {
     _tripId = null;
     _startedAt = null;
     _last = null;
+    _lastAt = null;
     _stepBaseline = null;
     _steps = null;
     notifyListeners();
@@ -210,6 +264,32 @@ class TripRecorder extends ChangeNotifier {
   }
 
   // --- pure helpers (testable, no GPS) ------------------------------------
+
+  /// Whether to keep [candidate] in the track. Pure (no GPS) so it's unit
+  /// tested. Drops two kinds of bad fix:
+  ///   - poor accuracy: a coarse network/cell fix can land kilometres off (the
+  ///     reported [accuracyMetres] radius exceeds [_maxAccuracyMetres]);
+  ///   - teleport: the implied speed from the last kept point exceeds
+  ///     [_maxSpeedMetresPerSecond].
+  /// A far point reached after a long recording gap is KEPT — its large time
+  /// delta keeps the implied speed low — so resuming after a backgrounded
+  /// stretch records the real position rather than discarding it.
+  static bool acceptFix({
+    required double accuracyMetres,
+    required LatLng candidate,
+    required DateTime candidateAt,
+    LatLng? lastAccepted,
+    DateTime? lastAt,
+  }) {
+    if (accuracyMetres.isFinite && accuracyMetres > _maxAccuracyMetres) {
+      return false;
+    }
+    if (lastAccepted == null || lastAt == null) return true; // first fix
+    final seconds = candidateAt.difference(lastAt).inMilliseconds / 1000.0;
+    if (seconds <= 0) return true; // duplicate/out-of-order time — don't judge speed
+    final metres = haversineMetres(lastAccepted, candidate);
+    return metres / seconds <= _maxSpeedMetresPerSecond;
+  }
 
   /// True if [pt] lands within [_retraceRadiusMetres] of a point already in
   /// [prior], ignoring the last [_retraceSkip] points (always adjacent).

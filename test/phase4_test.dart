@@ -55,6 +55,73 @@ void main() {
     });
   });
 
+  group('TripRecorder.acceptFix', () {
+    final t0 = DateTime(2026, 6, 16, 17, 0, 0);
+    const here = LatLng(53.20, -1.07);
+
+    test('keeps the first good fix (no prior point)', () {
+      expect(
+        TripRecorder.acceptFix(
+            accuracyMetres: 8, candidate: here, candidateAt: t0),
+        isTrue,
+      );
+    });
+
+    test('rejects a low-accuracy (coarse network) fix', () {
+      // The "jumped to the town centre" bug: a fix reporting a huge error radius.
+      expect(
+        TripRecorder.acceptFix(
+            accuracyMetres: 1500, candidate: here, candidateAt: t0),
+        isFalse,
+      );
+    });
+
+    test('rejects an impossible teleport between close-in-time fixes', () {
+      // ~1.6 km away (0.02° lng ≈ 1.3 km at 53°N, plus lat) just 5 s later.
+      const far = LatLng(53.21, -1.04);
+      expect(
+        TripRecorder.acceptFix(
+          accuracyMetres: 8,
+          candidate: far,
+          candidateAt: t0.add(const Duration(seconds: 5)),
+          lastAccepted: here,
+          lastAt: t0,
+        ),
+        isFalse,
+      );
+    });
+
+    test('keeps a far point reached after a long gap (real, just backgrounded)',
+        () {
+      // Same ~1.6 km jump, but 20 minutes later → ~1.3 m/s, plausibly walked.
+      const far = LatLng(53.21, -1.04);
+      expect(
+        TripRecorder.acceptFix(
+          accuracyMetres: 8,
+          candidate: far,
+          candidateAt: t0.add(const Duration(minutes: 20)),
+          lastAccepted: here,
+          lastAt: t0,
+        ),
+        isTrue,
+      );
+    });
+
+    test('keeps a normal walking step', () {
+      const next = LatLng(53.2001, -1.07); // ~11 m
+      expect(
+        TripRecorder.acceptFix(
+          accuracyMetres: 12,
+          candidate: next,
+          candidateAt: t0.add(const Duration(seconds: 5)),
+          lastAccepted: here,
+          lastAt: t0,
+        ),
+        isTrue,
+      );
+    });
+  });
+
   group('TripRecorder.retraceFlags', () {
     test('a straight walk never flags itself', () {
       // ~11 m spacing (0.0001° lng at the equator), all forward.

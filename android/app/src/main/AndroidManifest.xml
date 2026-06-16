@@ -10,6 +10,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- Android 13+ : show the ongoing "recording trip" foreground-service
+         notification. Requested at runtime when recording starts; the service
+         still runs if denied, but the notification stays hidden. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Step count during a recorded trip (pedometer / step-counter sensor).
          Runtime "Physical activity" permission on Android 10+ (auto-granted
          below it). The feature degrades gracefully if denied or unsupported. -->

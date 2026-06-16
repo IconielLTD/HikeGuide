@@ -84,6 +84,18 @@ class LiveLocation extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Release our own position stream and AWAIT its teardown, so the recorder can
+  /// start the sole stream. geolocator only promotes a stream to a foreground
+  /// service when no other location stream is already running — if ours is still
+  /// active when [TripRecorder] subscribes, the recorder's foreground-service
+  /// config is silently ignored (no notification, no background tracking). The
+  /// recorder calls this and awaits it before subscribing; we re-acquire after
+  /// recording via the normal recorder-change listener.
+  Future<void> suspendForRecording() async {
+    await _sub?.cancel();
+    _sub = null;
+  }
+
   /// Run the live stream exactly when it's wanted: started, needed by a visible
   /// screen, and not while the recorder owns GPS.
   void _syncSubscription() {
