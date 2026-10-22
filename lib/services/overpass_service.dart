@@ -208,7 +208,7 @@ class OverpassService {
       // become the reported nearest.
       if (!_isLargeBody(tags)) continue;
 
-      final kind = _waterKind(tags);
+      final kind = waterKindOf(tags);
       void consider(double dist, LatLng point) {
         if (bestDist == null || dist < bestDist!) {
           bestDist = dist;
@@ -282,15 +282,44 @@ class OverpassService {
     return w == 'river' || w == 'canal' || w == 'riverbank';
   }
 
-  static String? _waterKind(Map<String, dynamic> tags) {
+  // The water kind goes into the Haiku prompt, and OSM tags are free text that
+  // anyone can edit (as is whatever an Overpass server returns), so only these
+  // known values pass through — never the raw tag. Anything else is a generic
+  // label, so a crafted tag can't steer the guides' safety advice.
+  static const Map<String, String> _waterwayKinds = {
+    'river': 'river',
+    'riverbank': 'river',
+    'canal': 'canal',
+    'stream': 'stream',
+    'brook': 'brook',
+  };
+  static const Map<String, String> _waterTagKinds = {
+    'lake': 'lake',
+    'pond': 'pond',
+    'reservoir': 'reservoir',
+    'river': 'river',
+    'canal': 'canal',
+    'oxbow': 'oxbow lake',
+    'lagoon': 'lagoon',
+    'basin': 'basin',
+    'fishpond': 'fishpond',
+    'moat': 'moat',
+    'lock': 'canal lock',
+    'wastewater': 'wastewater pond', // worth knowing: not for drinking
+  };
+
+  @visibleForTesting
+  static String? waterKindOf(Map<String, dynamic> tags) {
     final waterway = tags['waterway'];
-    if (waterway == 'riverbank') return 'river';
-    if (waterway is String && waterway.isNotEmpty) return waterway;
+    if (waterway is String && waterway.isNotEmpty) {
+      return _waterwayKinds[waterway] ?? 'watercourse';
+    }
     if (tags['landuse'] == 'reservoir') return 'reservoir';
     if (tags['natural'] == 'water') {
       final water = tags['water'];
       // Untagged open water is almost always a lake at this scale.
-      return (water is String && water.isNotEmpty) ? water : 'lake';
+      if (water is! String || water.isEmpty) return 'lake';
+      return _waterTagKinds[water] ?? 'water';
     }
     return null;
   }
