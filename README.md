@@ -100,10 +100,13 @@ Keys are entered in-app on the **Info** tab and stored in secure storage:
   Get one at <https://console.anthropic.com/>. Bring-your-own-key: usage is
   billed to your own account. You will have to add credits to your account to use it.
 - **OS Maps (OS Data Hub) key** — *optional*, only for the OS "Outdoor"
-  basemap. Without it the app uses the default OpenStreetMap tiles.
+  basemap.
+- **CARTO basemaps key** — needed for the default dark basemap (CARTO has
+  required a key since late 2026). Free from <https://carto.com/basemaps/apikey>,
+  no account or card needed. Without it, use the OS basemap instead.
 
-The app runs without either key but, you won't get generated guides or the
-OS basemap until they're set. Which are some of the best parts of the app.
+The app runs without any of these keys but, you won't get generated guides or a
+basemap until they're set. Which are some of the best parts of the app.
 
 ## Distributing a build
 

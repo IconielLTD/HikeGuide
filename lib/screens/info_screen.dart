@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../models/region_pack.dart';
 import '../services/api_key_store.dart';
 import '../services/cache_repository.dart';
+import '../services/carto_key_store.dart';
 import '../services/os_maps_key_store.dart';
 import '../services/region_pack_service.dart';
 import '../theme/app_theme.dart';
 
-/// Info tab: API keys (Anthropic + OS Maps), cache management, credits, legal.
+/// Info tab: API keys (Anthropic, OS Maps, CARTO), cache management, credits,
+/// legal.
 class InfoScreen extends StatefulWidget {
   const InfoScreen({super.key});
 
@@ -18,10 +20,13 @@ class InfoScreen extends StatefulWidget {
 class _InfoScreenState extends State<InfoScreen> {
   final TextEditingController _anthropicController = TextEditingController();
   final TextEditingController _osController = TextEditingController();
+  final TextEditingController _cartoController = TextEditingController();
   bool _anthropicObscure = true;
   bool _osObscure = true;
+  bool _cartoObscure = true;
   bool _hasAnthropic = false;
   bool _hasOsKey = false;
+  bool _hasCartoKey = false;
   int _guideCount = 0;
   int _oppCount = 0;
   List<RegionPack> _packs = const [];
@@ -38,12 +43,14 @@ class _InfoScreenState extends State<InfoScreen> {
   void dispose() {
     _anthropicController.dispose();
     _osController.dispose();
+    _cartoController.dispose();
     super.dispose();
   }
 
   Future<void> _refresh() async {
     final hasAnthropic = await ApiKeyStore.instance.hasKey();
     final hasOs = await OsMapsKeyStore.instance.hasKey();
+    final hasCarto = await CartoKeyStore.instance.hasKey();
     final guides = await CacheRepository.instance.countCachedGuides();
     final opps = await CacheRepository.instance.countCachedOpportunities();
     final packs = await _loadPacks();
@@ -51,6 +58,7 @@ class _InfoScreenState extends State<InfoScreen> {
     setState(() {
       _hasAnthropic = hasAnthropic;
       _hasOsKey = hasOs;
+      _hasCartoKey = hasCarto;
       _guideCount = guides;
       _oppCount = opps;
       _packs = packs;
@@ -115,6 +123,21 @@ class _InfoScreenState extends State<InfoScreen> {
     _snack('OS Maps key removed.');
   }
 
+  Future<void> _saveCarto() async {
+    final text = _cartoController.text.trim();
+    if (text.isEmpty) return;
+    await CartoKeyStore.instance.write(text);
+    _cartoController.clear();
+    await _refresh();
+    _snack('CARTO key saved.');
+  }
+
+  Future<void> _clearCarto() async {
+    await CartoKeyStore.instance.clear();
+    await _refresh();
+    _snack('CARTO key removed.');
+  }
+
   Future<void> _clearGuides() async {
     await CacheRepository.instance.clearGuideCache();
     await _refresh();
@@ -170,6 +193,19 @@ class _InfoScreenState extends State<InfoScreen> {
                 'Free from osdatahub.os.uk (OS Maps API, OpenData plan — no card).',
             onSave: _saveOs,
             onClear: _hasOsKey ? _clearOs : null,
+          ),
+          const SizedBox(height: 24),
+          _keySection(
+            title: 'CARTO basemap key',
+            hasKey: _hasCartoKey,
+            controller: _cartoController,
+            obscure: _cartoObscure,
+            onToggleObscure: () => setState(() => _cartoObscure = !_cartoObscure),
+            hint: _hasCartoKey ? 'Enter a new key to replace' : 'CARTO basemaps key',
+            helper: 'Needed for the dark map on the Map tab. Free from '
+                'carto.com/basemaps/apikey (no account or card needed).',
+            onSave: _saveCarto,
+            onClear: _hasCartoKey ? _clearCarto : null,
           ),
           const SizedBox(height: 28),
           _buildStorageSection(context),

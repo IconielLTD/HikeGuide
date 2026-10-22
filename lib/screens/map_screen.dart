@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/access_guidance.dart';
 import '../services/access_land_service.dart';
+import '../services/carto_key_store.dart';
 import '../services/geo/geometry.dart';
 import '../services/live_location.dart';
 import '../services/os_maps_key_store.dart';
@@ -55,6 +56,12 @@ class _MapScreenState extends State<MapScreen> {
   bool _useOsMap = false;
   String? _osKey;
 
+  // CARTO now requires a key for the dark basemap. Until one is added (Info
+  // tab) the dark layer isn't requested — CARTO would only serve "API KEY
+  // REQUIRED" placeholder tiles — and a prompt points the user to Info.
+  String? _cartoKey;
+  bool _cartoKeyLoaded = false; // avoid flashing the prompt before the read
+
   // Access-land overlay (bundled CRoW / Forestry England GeoJSON). Empty until
   // data is bundled; refreshed for the visible viewport as the map moves.
   bool _hasAccessData = false;
@@ -78,6 +85,8 @@ class _MapScreenState extends State<MapScreen> {
     _live.start(); // idempotent
     _live.addListener(_onLiveLocation);
     _loadOsKey();
+    _loadCartoKey();
+    CartoKeyStore.instance.addListener(_loadCartoKey);
     _loadAccessFlag();
     // Redraw the live trip polyline as new points arrive.
     TripRecorder.instance.addListener(_onTripChange);
@@ -89,6 +98,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _live.removeListener(_onLiveLocation);
+    CartoKeyStore.instance.removeListener(_loadCartoKey);
     TripRecorder.instance.removeListener(_onTripChange);
     RegionPackService.instance.removeListener(_onPacksChanged);
     super.dispose();
@@ -215,6 +225,18 @@ class _MapScreenState extends State<MapScreen> {
     setState(() => _osKey = key);
   }
 
+  Future<void> _loadCartoKey() async {
+    final key = await CartoKeyStore.instance.read();
+    if (!mounted) return;
+    setState(() {
+      _cartoKey = key;
+      _cartoKeyLoaded = true;
+    });
+  }
+
+  /// Dark basemap selected but no CARTO key stored yet.
+  bool get _needsCartoKey => !_useOsMap && _cartoKeyLoaded && _cartoKey == null;
+
   Future<void> _toggleBasemap() async {
     if (_useOsMap) {
       setState(() => _useOsMap = false);
@@ -237,7 +259,8 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  TileLayer _buildTileLayer() {
+  /// Null when the dark basemap is selected but there's no CARTO key yet.
+  TileLayer? _buildTileLayer() {
     if (_useOsMap && _osKey != null) {
       return TileLayer(
         urlTemplate:
@@ -251,9 +274,13 @@ class _MapScreenState extends State<MapScreen> {
         maxNativeZoom: 16,
       );
     }
+    final cartoKey = _cartoKey;
+    if (cartoKey == null) return null;
     return TileLayer(
-      // flutter_map 8.x removed `subdomains`; use a single Carto host.
-      urlTemplate: 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      // CARTO's keyed raster endpoint (single host; flutter_map 8.x removed
+      // `subdomains` anyway).
+      urlTemplate:
+          'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=$cartoKey',
       userAgentPackageName: 'com.nfosborn.hikeguide',
       maxNativeZoom: 20,
     );
@@ -330,7 +357,7 @@ class _MapScreenState extends State<MapScreen> {
             },
           ),
           children: [
-            _buildTileLayer(),
+            if (_buildTileLayer() case final tiles?) tiles,
             if (_accessParcels.isNotEmpty)
               PolygonLayer(
                 polygons: [
@@ -408,6 +435,27 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
         ),
+        // Dark basemap selected without a CARTO key: say why the map is blank.
+        if (_needsCartoKey)
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 64, 12, 0),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Material(
+                  color: AppColors.surface.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(12),
+                  clipBehavior: Clip.antiAlias,
+                  child: _InfoTabPrompt(
+                    icon: Icons.vpn_key_outlined,
+                    title: 'Dark map needs a CARTO key',
+                    subtitle: 'Add a free key in the Info tab, or switch to the OS map',
+                    onTap: widget.onOpenInfo,
+                  ),
+                ),
+              ),
+            ),
+          ),
         // Recenter button — only when we've drifted off the live position.
         // Tapping re-engages follow and snaps back to the marker. Sits clear of
         // the bottom panel (taller when the access banner is showing).
@@ -437,8 +485,11 @@ class _MapScreenState extends State<MapScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (_missingPackLabel != null) ...[
-                      _DownloadPrompt(
-                        region: _missingPackLabel!,
+                      _InfoTabPrompt(
+                        icon: Icons.cloud_download_outlined,
+                        title: 'No access data for this area yet',
+                        subtitle:
+                            'Download the $_missingPackLabel pack in the Info tab',
                         onTap: widget.onOpenInfo,
                       ),
                       Divider(
@@ -515,10 +566,19 @@ class _StatusPill extends StatelessWidget {
 /// Shown in the bottom panel when the user is in a region whose access pack
 /// hasn't been downloaded yet. Access data is fetched on demand (never
 /// automatically), so this nudges them to the Info tab to download it once.
-class _DownloadPrompt extends StatelessWidget {
-  final String region;
+/// A tappable one-liner that sends the user to the Info tab (download a region
+/// pack, add a missing key).
+class _InfoTabPrompt extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
   final VoidCallback? onTap;
-  const _DownloadPrompt({required this.region, this.onTap});
+  const _InfoTabPrompt({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -528,24 +588,23 @@ class _DownloadPrompt extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            const Icon(Icons.cloud_download_outlined,
-                size: 20, color: AppColors.accent),
+            Icon(icon, size: 20, color: AppColors.accent),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'No access data for this area yet',
-                    style: TextStyle(
+                  Text(
+                    title,
+                    style: const TextStyle(
                         color: AppColors.primaryText,
                         fontSize: 15,
                         fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Download the $region pack in the Info tab',
+                    subtitle,
                     style: const TextStyle(
                         color: AppColors.secondaryText, fontSize: 13),
                   ),
