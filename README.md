@@ -104,6 +104,13 @@ Keys are entered in-app on the **Info** tab and stored in secure storage:
 - **CARTO basemaps key** — needed for the default dark basemap (CARTO has
   required a key since late 2026). Free from <https://carto.com/basemaps/apikey>,
   no account or card needed. Without it, use the OS basemap instead.
+- **Overpass server** — *optional*. Woodland and nearest-water detection uses the
+  free public Overpass servers, which need no key but are often overloaded. For a
+  reliable one, sign up with a keyed provider (e.g. <https://overpass.ch/>, which
+  has a free tier; others are listed on the
+  [OSM wiki](https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances))
+  and paste its full server address, key included. It's tried first, with the
+  public servers as the fallback.
 
 The app runs without any of these keys but, you won't get generated guides or a
 basemap until they're set. Which are some of the best parts of the app.

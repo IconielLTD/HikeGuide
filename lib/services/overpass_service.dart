@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'geo/geometry.dart';
+import 'overpass_server_store.dart';
 
 /// Result of one woodland + water detection round-trip.
 ///
@@ -49,7 +50,8 @@ class OverpassService {
   OverpassService._();
   static final OverpassService instance = OverpassService._();
 
-  static const List<String> _endpoints = [
+  /// Free public servers — the fallback after the user's own server (if any).
+  static const List<String> _publicEndpoints = [
     'https://overpass-api.de/api/interpreter',
     'https://overpass.private.coffee/api/interpreter',
   ];
@@ -105,9 +107,17 @@ class OverpassService {
   }
 
   Future<Map<String, dynamic>?> _post(String query) async {
+    // The user's own server (Info tab) first, then the public ones.
+    final custom = await OverpassServerStore.instance.read();
+    final endpoints = [
+      if (custom != null && OverpassServerStore.isValid(custom)) custom,
+      ..._publicEndpoints,
+    ];
     // Two passes over the endpoint list = one retry, rotating on 429/504/timeout.
     for (int attempt = 0; attempt < 2; attempt++) {
-      for (final url in _endpoints) {
+      for (final url in endpoints) {
+        // A custom URL carries its API key — never write it to the log.
+        final label = url == custom ? 'your Overpass server' : url;
         try {
           final res = await _dio.post<dynamic>(
             url,
@@ -122,13 +132,51 @@ class OverpassService {
             if (decoded is Map<String, dynamic>) return decoded;
           }
         } on DioException catch (e) {
-          debugPrint('Overpass $url failed: ${e.type.name}');
+          final code = e.response?.statusCode;
+          debugPrint('Overpass $label failed: ${e.type.name}'
+              '${code == null ? '' : ' (HTTP $code)'}');
+          if (url == custom && e.response != null) {
+            // Enough to diagnose a misconfigured address without logging the
+            // key: the URL's shape (key masked) and the provider's message.
+            debugPrint('  sent to: ${_maskedShape(url)}');
+            final body = _redact('${e.response?.data ?? ''}', url).trim();
+            if (body.isNotEmpty) {
+              debugPrint('  server said: '
+                  '${body.length > 300 ? '${body.substring(0, 300)}…' : body}');
+            }
+          }
         } catch (e) {
-          debugPrint('Overpass $url parse error: $e');
+          debugPrint('Overpass $label parse error: $e');
         }
       }
     }
     return null;
+  }
+
+  /// `https://host/v1/•••(32)/interpreter` — long path segments (keys) masked
+  /// to their length, so stray characters or a wrong path show in the log
+  /// without the key itself.
+  static String _maskedShape(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return '(unparseable address, ${url.length} chars)';
+    final path = uri.pathSegments
+        .map((s) => s.length >= 12 ? '•••(${s.length})' : s)
+        .join('/');
+    return '${uri.scheme}://${uri.host}'
+        '${uri.hasPort ? ':${uri.port}' : ''}/$path'
+        '${url.endsWith('/') ? '/' : ''}'
+        '${uri.hasQuery ? '?…(query, ${uri.query.length} chars)' : ''}'
+        '${uri.hasFragment ? '#…' : ''}';
+  }
+
+  /// Masks every long path segment of [url] (i.e. the key) wherever it
+  /// appears in [text] — some servers echo the requested path back.
+  static String _redact(String text, String url) {
+    var out = text;
+    for (final s in Uri.tryParse(url)?.pathSegments ?? const <String>[]) {
+      if (s.length >= 12) out = out.replaceAll(s, '•••');
+    }
+    return out;
   }
 
   // --- parsing (static + testable, no network) ----------------------------

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/region_pack.dart';
 import '../services/api_key_store.dart';
 import '../services/cache_repository.dart';
 import '../services/carto_key_store.dart';
 import '../services/os_maps_key_store.dart';
+import '../services/overpass_server_store.dart';
 import '../services/region_pack_service.dart';
 import '../theme/app_theme.dart';
 
-/// Info tab: API keys (Anthropic, OS Maps, CARTO), cache management, credits,
-/// legal.
+/// Info tab: API keys (Anthropic, OS Maps, CARTO, Overpass server), cache
+/// management, credits, legal.
 class InfoScreen extends StatefulWidget {
   const InfoScreen({super.key});
 
@@ -21,12 +23,15 @@ class _InfoScreenState extends State<InfoScreen> {
   final TextEditingController _anthropicController = TextEditingController();
   final TextEditingController _osController = TextEditingController();
   final TextEditingController _cartoController = TextEditingController();
+  final TextEditingController _overpassController = TextEditingController();
   bool _anthropicObscure = true;
   bool _osObscure = true;
   bool _cartoObscure = true;
+  bool _overpassObscure = true; // the URL carries the provider's key
   bool _hasAnthropic = false;
   bool _hasOsKey = false;
   bool _hasCartoKey = false;
+  bool _hasOverpass = false;
   int _guideCount = 0;
   int _oppCount = 0;
   List<RegionPack> _packs = const [];
@@ -44,6 +49,7 @@ class _InfoScreenState extends State<InfoScreen> {
     _anthropicController.dispose();
     _osController.dispose();
     _cartoController.dispose();
+    _overpassController.dispose();
     super.dispose();
   }
 
@@ -51,6 +57,7 @@ class _InfoScreenState extends State<InfoScreen> {
     final hasAnthropic = await ApiKeyStore.instance.hasKey();
     final hasOs = await OsMapsKeyStore.instance.hasKey();
     final hasCarto = await CartoKeyStore.instance.hasKey();
+    final hasOverpass = await OverpassServerStore.instance.hasKey();
     final guides = await CacheRepository.instance.countCachedGuides();
     final opps = await CacheRepository.instance.countCachedOpportunities();
     final packs = await _loadPacks();
@@ -59,6 +66,7 @@ class _InfoScreenState extends State<InfoScreen> {
       _hasAnthropic = hasAnthropic;
       _hasOsKey = hasOs;
       _hasCartoKey = hasCarto;
+      _hasOverpass = hasOverpass;
       _guideCount = guides;
       _oppCount = opps;
       _packs = packs;
@@ -138,6 +146,30 @@ class _InfoScreenState extends State<InfoScreen> {
     _snack('CARTO key removed.');
   }
 
+  Future<void> _saveOverpass() async {
+    final text = _overpassController.text.trim();
+    if (text.isEmpty) return;
+    if (!OverpassServerStore.isValid(text)) {
+      _snack('Paste the full https:// server address from your provider.');
+      return;
+    }
+    await OverpassServerStore.instance.write(text);
+    _overpassController.clear();
+    await _refresh();
+    _snack('Overpass server saved.');
+  }
+
+  Future<void> _clearOverpass() async {
+    await OverpassServerStore.instance.clear();
+    await _refresh();
+    _snack('Overpass server removed — using the public servers.');
+  }
+
+  Future<void> _openLink(String url) async {
+    final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    if (!ok) _snack('Could not open $url');
+  }
+
   Future<void> _clearGuides() async {
     await CacheRepository.instance.clearGuideCache();
     await _refresh();
@@ -176,8 +208,11 @@ class _InfoScreenState extends State<InfoScreen> {
             onToggleObscure: () =>
                 setState(() => _anthropicObscure = !_anthropicObscure),
             hint: _hasAnthropic ? 'Enter a new key to replace' : 'sk-ant-…',
-            helper: 'Generates opportunities and guides. Stored in the device '
-                'secure store — never in the app database.',
+            helper: 'Generates opportunities and guides. Your account needs credit. '
+                'Stored in the device secure store — never in the app database.',
+            links: const [
+              ('Get a key: Claude Console', 'https://platform.claude.com/settings/keys'),
+            ],
             onSave: _saveAnthropic,
             onClear: _hasAnthropic ? _clearAnthropic : null,
           ),
@@ -190,7 +225,11 @@ class _InfoScreenState extends State<InfoScreen> {
             onToggleObscure: () => setState(() => _osObscure = !_osObscure),
             hint: _hasOsKey ? 'Enter a new key to replace' : 'OS Data Hub project key',
             helper: 'Optional. Enables the OS "Outdoor" map layer on the Map tab. '
-                'Free from osdatahub.os.uk (OS Maps API, OpenData plan — no card).',
+                'Free: add the OS Maps API to a project (OpenData plan — no card) '
+                'and use its Project API Key.',
+            links: const [
+              ('Get a key: OS Data Hub', 'https://osdatahub.os.uk/'),
+            ],
             onSave: _saveOs,
             onClear: _hasOsKey ? _clearOs : null,
           ),
@@ -202,10 +241,40 @@ class _InfoScreenState extends State<InfoScreen> {
             obscure: _cartoObscure,
             onToggleObscure: () => setState(() => _cartoObscure = !_cartoObscure),
             hint: _hasCartoKey ? 'Enter a new key to replace' : 'CARTO basemaps key',
-            helper: 'Needed for the dark map on the Map tab. Free from '
-                'carto.com/basemaps/apikey (no account or card needed).',
+            helper: 'Needed for the dark map on the Map tab. Free, with no account '
+                'or card needed.',
+            links: const [
+              ('Get a key: CARTO', 'https://carto.com/basemaps/apikey'),
+            ],
             onSave: _saveCarto,
             onClear: _hasCartoKey ? _clearCarto : null,
+          ),
+          const SizedBox(height: 24),
+          _keySection(
+            title: 'Overpass server',
+            hasKey: _hasOverpass,
+            controller: _overpassController,
+            obscure: _overpassObscure,
+            onToggleObscure: () =>
+                setState(() => _overpassObscure = !_overpassObscure),
+            hint: _hasOverpass
+                ? 'Enter a new address to replace'
+                : 'https://…/interpreter (key included)',
+            helper: 'Optional. Overpass finds nearby woodland and water for your '
+                'opportunities. The free public servers need no key but are often '
+                'overloaded. For a reliable one, sign up with a provider and paste '
+                'its full server address, with your key in it. Used first; the '
+                'public servers stay as the fallback.',
+            links: const [
+              ('Overpass.ch (free tier)', 'https://overpass.ch/'),
+              (
+                'Other providers',
+                'https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances'
+              ),
+            ],
+            saveLabel: 'Save server',
+            onSave: _saveOverpass,
+            onClear: _hasOverpass ? _clearOverpass : null,
           ),
           const SizedBox(height: 28),
           _buildStorageSection(context),
@@ -248,6 +317,8 @@ class _InfoScreenState extends State<InfoScreen> {
     required VoidCallback onToggleObscure,
     required String hint,
     required String helper,
+    List<(String label, String url)> links = const [],
+    String saveLabel = 'Save key',
     required VoidCallback onSave,
     required VoidCallback? onClear,
   }) {
@@ -302,7 +373,7 @@ class _InfoScreenState extends State<InfoScreen> {
         Row(
           children: [
             Expanded(
-              child: ElevatedButton(onPressed: onSave, child: const Text('Save key')),
+              child: ElevatedButton(onPressed: onSave, child: Text(saveLabel)),
             ),
             if (onClear != null) ...[
               const SizedBox(width: 12),
@@ -324,7 +395,37 @@ class _InfoScreenState extends State<InfoScreen> {
           style: const TextStyle(
               color: AppColors.secondaryText, fontSize: 13, height: 1.4),
         ),
+        for (final (label, url) in links) _linkRow(label, url),
       ],
+    );
+  }
+
+  /// A tappable link that opens [url] in the browser (where to get a key).
+  Widget _linkRow(String label, String url) {
+    return InkWell(
+      onTap: () => _openLink(url),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.open_in_new, size: 16, color: AppColors.accent),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.accent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.underline,
+                  decorationColor: AppColors.accent,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
