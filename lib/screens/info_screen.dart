@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/region_pack.dart';
@@ -101,13 +102,31 @@ class _InfoScreenState extends State<InfoScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Keys are usually pasted, so after saving one, clear it from the clipboard
+  /// — where other apps (e.g. a keyboard's clipboard history) could still pick
+  /// it up. Only when the clipboard still holds exactly that key, so nothing
+  /// else the user copied is touched. Then confirm with [message].
+  Future<void> _savedFromClipboard(String secret, String message) async {
+    var cleared = false;
+    try {
+      final copied = await Clipboard.getData(Clipboard.kTextPlain);
+      if (copied?.text?.trim() == secret) {
+        await Clipboard.setData(const ClipboardData(text: ''));
+        cleared = true;
+      }
+    } catch (_) {
+      // Clipboard unavailable — the key is saved either way.
+    }
+    _snack(cleared ? '$message Cleared it from the clipboard.' : message);
+  }
+
   Future<void> _saveAnthropic() async {
     final text = _anthropicController.text.trim();
     if (text.isEmpty) return;
     await ApiKeyStore.instance.write(text);
     _anthropicController.clear();
     await _refresh();
-    _snack('Anthropic key saved.');
+    await _savedFromClipboard(text, 'Anthropic key saved.');
   }
 
   Future<void> _clearAnthropic() async {
@@ -122,7 +141,7 @@ class _InfoScreenState extends State<InfoScreen> {
     await OsMapsKeyStore.instance.write(text);
     _osController.clear();
     await _refresh();
-    _snack('OS Maps key saved.');
+    await _savedFromClipboard(text, 'OS Maps key saved.');
   }
 
   Future<void> _clearOs() async {
@@ -137,7 +156,7 @@ class _InfoScreenState extends State<InfoScreen> {
     await CartoKeyStore.instance.write(text);
     _cartoController.clear();
     await _refresh();
-    _snack('CARTO key saved.');
+    await _savedFromClipboard(text, 'CARTO key saved.');
   }
 
   Future<void> _clearCarto() async {
@@ -156,7 +175,7 @@ class _InfoScreenState extends State<InfoScreen> {
     await OverpassServerStore.instance.write(text);
     _overpassController.clear();
     await _refresh();
-    _snack('Overpass server saved.');
+    await _savedFromClipboard(text, 'Overpass server saved.');
   }
 
   Future<void> _clearOverpass() async {
