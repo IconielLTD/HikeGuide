@@ -55,7 +55,9 @@ android {
         applicationId = "com.nfosborn.hikeguide"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Android 8.0+. Flutter's default (24, Android 7.0) would let the app
+        // install on devices that haven't had security updates for years.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

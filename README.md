@@ -12,7 +12,7 @@ Ordnance Survey experience.
 ## Install
 
 HikeGuide is Android-only and distributed as a sideloaded APK (it's not on any
-app store).
+app store). It needs **Android 8.0 or newer**.
 
 1. On your Android phone, open the **[latest release](https://github.com/IconielLTD/HikeGuide/releases/latest)** and download `app-release.apk` (~53 MB).
 2. Tap the downloaded file. The first time, Android will ask to **allow installs
