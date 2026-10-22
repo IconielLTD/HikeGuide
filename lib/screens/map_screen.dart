@@ -33,6 +33,10 @@ class _MapScreenState extends State<MapScreen> {
   static const LatLng _defaultCentre = LatLng(53.2058, -1.0721);
   static const double _defaultZoom = 13.0;
 
+  // The access overlay is only drawn from this zoom in (legibility), so the
+  // missing-pack prompt only applies from here too.
+  static const double _accessMinZoom = 11.0;
+
   // Pale amber for stretches you've doubled back over, so an out-and-back leg
   // reads as two passes rather than one solid line.
   static final Color _retraceColor =
@@ -68,10 +72,13 @@ class _MapScreenState extends State<MapScreen> {
   List<AccessParcel> _accessParcels = const [];
   String? _accessViewSig; // last viewport we refreshed for (skip duplicates)
 
-  // Label of the region pack covering the user's location that ISN'T downloaded
-  // yet (null when it's downloaded, or there's no coverage / no fix). Drives the
-  // "download your region" prompt — packs are fetched on demand, never auto.
+  // Label of the region pack covering the area the map is looking at that ISN'T
+  // downloaded yet (null when it's downloaded, there's no coverage, or we're
+  // zoomed out). Drives the "download this region" prompt — packs are fetched
+  // on demand, never auto.
   String? _missingPackLabel;
+  String? _packCheckSig; // last point/zoom we checked for (skip duplicates)
+  int _packCheckSeq = 0; // drops stale async results while panning
 
   @override
   void initState() {
@@ -109,6 +116,7 @@ class _MapScreenState extends State<MapScreen> {
   void _onPacksChanged() {
     if (!mounted) return;
     _accessViewSig = null;
+    _packCheckSig = null;
     if (!_hasAccessData) {
       _loadAccessFlag();
     } else if (_mapReady) {
@@ -117,18 +125,29 @@ class _MapScreenState extends State<MapScreen> {
     _checkAccessAvailability();
   }
 
-  /// Work out whether the user's current region has a pack that hasn't been
-  /// downloaded yet, so the Map can prompt them to fetch it. Cheap (offline
-  /// coverage point-in-polygon + a file-exists check); only rebuilds on change.
+  /// Work out whether the region the map is looking at has a pack that hasn't
+  /// been downloaded yet, so the Map can prompt the user to fetch it. Keyed on
+  /// the viewport centre (the live position while following; the GPS fix
+  /// before the map is ready) and only at overlay zoom. Cheap (offline coverage
+  /// point-in-polygon + a file-exists check); only rebuilds on change.
   Future<void> _checkAccessAvailability() async {
-    final at = _gps;
+    final LatLng? at = _mapReady ? _mapController.camera.center : _gps;
+    final bool zoomedIn =
+        !_mapReady || _mapController.camera.zoom >= _accessMinZoom;
+    final sig = at == null || !zoomedIn
+        ? 'none'
+        : '${at.latitude.toStringAsFixed(2)},${at.longitude.toStringAsFixed(2)}';
+    if (sig == _packCheckSig) return;
+    _packCheckSig = sig;
+    final seq = ++_packCheckSeq;
+
     String? missing;
-    if (at != null) {
+    if (at != null && zoomedIn) {
       final svc = RegionPackService.instance;
       final pack = await svc.packFor(at);
       if (pack != null && !await svc.isAvailable(pack)) missing = pack.label;
     }
-    if (!mounted || missing == _missingPackLabel) return;
+    if (!mounted || seq != _packCheckSeq || missing == _missingPackLabel) return;
     setState(() => _missingPackLabel = missing);
   }
 
@@ -190,7 +209,7 @@ class _MapScreenState extends State<MapScreen> {
   /// only when zoomed in enough that the overlay is legible (>= z11).
   Future<void> _refreshAccess(MapCamera camera) async {
     if (!_hasAccessData) return;
-    if (camera.zoom < 11) {
+    if (camera.zoom < _accessMinZoom) {
       if (_accessParcels.isNotEmpty) {
         setState(() => _accessParcels = const []);
       }
@@ -340,6 +359,7 @@ class _MapScreenState extends State<MapScreen> {
             onMapReady: () {
               _mapReady = true;
               _refreshAccess(_mapController.camera);
+              _checkAccessAvailability();
               // If a fix already arrived before the map was ready, centre now.
               final fix = _gps;
               if (fix != null && !_hasCentred) {
@@ -354,6 +374,7 @@ class _MapScreenState extends State<MapScreen> {
                 setState(() => _followMe = false);
               }
               _refreshAccess(camera);
+              _checkAccessAvailability();
             },
           ),
           children: [
@@ -465,9 +486,11 @@ class _MapScreenState extends State<MapScreen> {
             bottom: (_accessStatus != null || _missingPackLabel != null) ? 132 : 92,
             child: _RecenterButton(onTap: _recenter),
           ),
-        // Field info panel along the bottom: tappable land-access banner (live;
-        // updates as boundaries are crossed) above the grid ref + declination.
-        if (_gps != null)
+        // Field info panel along the bottom: the missing-pack prompt for the
+        // area in view, or the tappable land-access banner (live; updates as
+        // boundaries are crossed), above the grid ref + declination. The prompt
+        // shows without a GPS fix too, so browsing another region still works.
+        if (_gps != null || _missingPackLabel != null)
           Positioned(
             left: 8,
             right: 8,
@@ -492,12 +515,13 @@ class _MapScreenState extends State<MapScreen> {
                             'Download the $_missingPackLabel pack in the Info tab',
                         onTap: widget.onOpenInfo,
                       ),
-                      Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: AppColors.secondaryText.withValues(alpha: 0.15),
-                      ),
-                    ] else if (_accessStatus != null) ...[
+                      if (_gps != null)
+                        Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: AppColors.secondaryText.withValues(alpha: 0.15),
+                        ),
+                    ] else if (_gps != null && _accessStatus != null) ...[
                       _AccessBanner(
                         status: _accessStatus!,
                         onTap: () => showAccessInfo(context, _accessStatus),
@@ -508,10 +532,11 @@ class _MapScreenState extends State<MapScreen> {
                         color: AppColors.secondaryText.withValues(alpha: 0.15),
                       ),
                     ],
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: PositionInfo(location: _gps),
-                    ),
+                    if (_gps != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: PositionInfo(location: _gps),
+                      ),
                   ],
                 ),
               ),
