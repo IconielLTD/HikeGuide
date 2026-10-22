@@ -7,7 +7,7 @@ of the land you're standing on), and offers short, plain-English lessons and
 realistic things to try — aimed at adults with **no** prior bushcraft or
 Ordnance Survey experience.
 
-> **Status:** Android-only. **v1.1.0 released** — see [Install](#install) below. Built with Flutter 3.44.x / Dart 3.5+.
+> **Status:** Android-only. **v1.2.0 released** — see [Install](#install) below. Built with Flutter 3.44.x / Dart 3.5+.
 
 ## Install
 

@@ -190,7 +190,7 @@ class _InfoScreenState extends State<InfoScreen> {
         children: [
           Text('HikeGuide', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 4),
-          const Text('Version 1.0.0',
+          const Text('Version 1.2.0',
               style: TextStyle(color: AppColors.secondaryText, fontSize: 14)),
           const SizedBox(height: 16),
           const Text(
