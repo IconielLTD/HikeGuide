@@ -168,8 +168,11 @@ you keep — see [`android/SIGNING.md`](android/SIGNING.md) — so people can
 **update in place**:
 
 ```powershell
-flutter build apk --release   # → build/app/outputs/flutter-apk/app-release.apk
+.\release.ps1   # asks for the key's passwords → build/app/outputs/flutter-apk/app-release.apk
 ```
+
+The signing passwords are never stored in a file: `release.ps1` asks for them
+and passes them to that one build only.
 
 Android only accepts an update signed with the same key as the existing
 install, so a throwaway debug key would force people to uninstall (losing their

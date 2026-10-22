@@ -34,16 +34,21 @@ keytool -genkey -v `
   -alias hikeguide
 ```
 
-It prompts for a keystore password, a key password, and your name/org. Remember
-the two passwords and the alias (`hikeguide`).
+It prompts for a keystore password, a key password, and your name/org. Save the
+two passwords **in your password manager** (not in a file), and note the alias
+(`hikeguide`).
+
+Keep **two offline backups** of the `.jks` file (e.g. an encrypted USB stick).
+If it's lost you can never ship an update that installs over the existing app;
+if it leaks together with its passwords, someone could sign a fake "update"
+that Android installs over the real one.
 
 ## 2. Create android/key.properties
 
-Make a file at `android/key.properties` (next to this one):
+Make a file at `android/key.properties` (next to this one). It says **where**
+the key is — and nothing secret:
 
 ```properties
-storePassword=<the keystore password from step 1>
-keyPassword=<the key password from step 1>
 keyAlias=hikeguide
 storeFile=C:\\Users\\<you>\\hikeguide-release.jks
 ```
@@ -51,16 +56,33 @@ storeFile=C:\\Users\\<you>\\hikeguide-release.jks
 Use double backslashes in `storeFile` on Windows, or forward slashes. A relative
 path also works (resolved from the `android/` folder).
 
+**The passwords never go in this file.** Anything that can read files as you
+— malware, or any code that runs during an ordinary build (Gradle plugins, the
+Flutter tool, packages with build hooks) — could otherwise take the key and its
+passwords together. If an older `key.properties` still has `storePassword` /
+`keyPassword` lines, they're ignored (the build and `release.ps1` warn about
+them): check both passwords are in your password manager, then delete those
+lines.
+
 ## 3. Build the APK
 
+From the repository root:
+
 ```powershell
-flutter build apk --release
+.\release.ps1
 ```
 
+It asks for the keystore password and the key password (press Enter if they're
+the same), passes them to that one build only, then clears them and stops
+Gradle's background process so they don't linger in memory. If PowerShell
+refuses to run scripts, use
+`powershell -ExecutionPolicy Bypass -File .\release.ps1`.
+
 The signed APK lands at `build/app/outputs/flutter-apk/app-release.apk`.
-`build.gradle` detects `key.properties` automatically and signs with your key.
-Without it the release build stops with an error (unless
-`HIKEGUIDE_ALLOW_DEBUG_SIGNING=1` is set — see the top of this file).
+A plain `flutter build apk --release` stops with an error pointing you to
+`release.ps1`, and without `key.properties` at all the release build fails too
+(unless `HIKEGUIDE_ALLOW_DEBUG_SIGNING=1` is set — see the top of this file).
+Debug builds (`flutter run`) need none of this.
 
 ## 4. Publish on GitHub Releases
 

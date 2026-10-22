@@ -5,17 +5,25 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-// Release signing is driven by android/key.properties (kept out of version
-// control — see android/.gitignore). When that file is absent, the release
-// build falls back to debug signing so `flutter run --release` and current
-// field-test builds keep working with no setup. To ship a real signed build,
-// create the keystore + key.properties (instructions in android/SIGNING.md).
+// Release signing (android/SIGNING.md). android/key.properties (kept out of
+// version control) says WHERE the keystore is — storeFile and keyAlias. The
+// two PASSWORDS are deliberately not read from any file: they come from the
+// HIKEGUIDE_STORE_PASSWORD / HIKEGUIDE_KEY_PASSWORD environment variables,
+// which release.ps1 sets for one release build only. Otherwise anything that
+// can read files as you (malware, or any code that runs during an ordinary
+// build) would get the key and its passwords together, and could sign a fake
+// "update" that Android installs over the real app.
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file("key.properties")
 def hasReleaseKeystore = keystorePropertiesFile.exists()
 if (hasReleaseKeystore) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
+def releaseStorePassword = System.getenv("HIKEGUIDE_STORE_PASSWORD")
+def releaseKeyPassword = System.getenv("HIKEGUIDE_KEY_PASSWORD") ?: releaseStorePassword
+// Older setups kept the passwords in key.properties; they're ignored now.
+def passwordsLeftInFile = keystoreProperties.containsKey("storePassword") ||
+        keystoreProperties.containsKey("keyPassword")
 
 // A release APK signed with the debug key can't update an install signed with
 // the release key, so people would have to uninstall (losing their trips) or
@@ -28,11 +36,23 @@ gradle.taskGraph.whenReady { graph ->
     def buildsRelease = graph.allTasks.any {
         it.project == project && it.name ==~ /(assemble|bundle|package)Release/
     }
-    if (buildsRelease && !hasReleaseKeystore && !allowDebugSigning) {
+    if (!buildsRelease) return
+    if (!hasReleaseKeystore) {
+        if (allowDebugSigning) return
         throw new GradleException(
             "Release build without android/key.properties. Set up the release key " +
             "(android/SIGNING.md), or set HIKEGUIDE_ALLOW_DEBUG_SIGNING=1 for a " +
             "personal debug-signed build that must not be distributed.")
+    }
+    if (passwordsLeftInFile) {
+        logger.warn("WARNING: android/key.properties still contains storePassword/" +
+            "keyPassword. They're no longer used: once they're saved in your " +
+            "password manager, delete those two lines (android/SIGNING.md).")
+    }
+    if (!releaseStorePassword) {
+        throw new GradleException(
+            "No keystore password. Build releases with .\\release.ps1, which asks " +
+            "for the passwords (android/SIGNING.md).")
     }
 }
 
@@ -69,9 +89,9 @@ android {
         if (hasReleaseKeystore) {
             release {
                 keyAlias = keystoreProperties["keyAlias"]
-                keyPassword = keystoreProperties["keyPassword"]
+                keyPassword = releaseKeyPassword
                 storeFile = keystoreProperties["storeFile"] ? file(keystoreProperties["storeFile"]) : null
-                storePassword = keystoreProperties["storePassword"]
+                storePassword = releaseStorePassword
             }
         }
     }
