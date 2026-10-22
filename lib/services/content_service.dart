@@ -33,7 +33,8 @@ class ContentService {
     final json = await _client.generateJson(
       system: _opportunitiesSystem,
       userPrompt: _opportunitiesUser(env),
-      maxTokens: 1024,
+      schema: _opportunitiesSchema,
+      maxTokens: 2048,
     );
 
     final raw = (json['opportunities'] as List?) ?? const [];
@@ -65,7 +66,8 @@ class ContentService {
     final json = await _client.generateJson(
       system: _guideSystem,
       userPrompt: _guideUser(env, title),
-      maxTokens: 2048,
+      schema: _guideSchema,
+      maxTokens: 4096,
     );
 
     final parsed = Guide.fromJson(json, category: category);
@@ -95,9 +97,63 @@ class ContentService {
   // Audience + voice: an ordinary adult with NO bushcraft, map or compass
   // experience, who wants to feel at home and capable in nature — the hunter,
   // not the prey. Plain English, short, doable-right-now, never dramatised.
-  // NOTE: the shared utility forces a JSON OBJECT via assistant prefill "{", so
-  // the opportunities prompt asks for an object wrapping the array (rather than
-  // a bare top-level array) — same data, one parse path.
+  // NOTE: the shared utility returns a JSON OBJECT (structured outputs, schemas
+  // below), so the opportunities prompt asks for an object wrapping the array
+  // (rather than a bare top-level array) — same data, one parse path.
+  // Structured outputs require every object to set additionalProperties: false.
+  static const Map<String, dynamic> _opportunitiesSchema = {
+    'type': 'object',
+    'properties': {
+      'opportunities': {
+        'type': 'array',
+        'items': {
+          'type': 'object',
+          'properties': {
+            'skill_category': {
+              'type': 'string',
+              'enum': ['navigation', 'tracking', 'shelter', 'fire', 'foraging'],
+            },
+            'title': {'type': 'string'},
+            'description': {'type': 'string'},
+            'fire_warning': {'type': 'boolean'},
+          },
+          'required': ['skill_category', 'title', 'description', 'fire_warning'],
+          'additionalProperties': false,
+        },
+      },
+    },
+    'required': ['opportunities'],
+    'additionalProperties': false,
+  };
+
+  static const Map<String, dynamic> _guideSchema = {
+    'type': 'object',
+    'properties': {
+      'title': {'type': 'string'},
+      'steps': {
+        'type': 'array',
+        'items': {
+          'type': 'object',
+          'properties': {
+            'step': {'type': 'integer'},
+            'text': {'type': 'string'},
+          },
+          'required': ['step', 'text'],
+          'additionalProperties': false,
+        },
+      },
+      'fire_warning': {'type': 'boolean'},
+      'legal_note': {
+        'anyOf': [
+          {'type': 'string'},
+          {'type': 'null'},
+        ],
+      },
+    },
+    'required': ['title', 'steps', 'fire_warning', 'legal_note'],
+    'additionalProperties': false,
+  };
+
   static const String _opportunitiesSystem =
       'You are a warm, encouraging bushcraft mentor in the calm, unhurried '
       'tradition of Ray Mears. You write for an ordinary adult with NO prior '

@@ -76,7 +76,7 @@ screen-off and backgrounding. Step count comes from the device pedometer.
   **cache-first** with bounded retries. Results are stored locally; the app does
   not re-query aggressively.
 - **Content** — guides and "opportunities" are generated via the Anthropic
-  Messages API (Claude Haiku) and cached in SQLite. Caches are versioned and
+  Messages API (Claude Haiku 5.5) and cached in SQLite. Caches are versioned and
   regenerate automatically when the prompts change.
 - **Storage** — trips, route points, and content caches live in a local SQLite
   database (sqflite) with versioned migrations. API keys live only in the

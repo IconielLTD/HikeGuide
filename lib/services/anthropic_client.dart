@@ -8,7 +8,12 @@ import 'api_key_store.dart';
 /// The Haiku model used for ALL guide/opportunity content. This string is
 /// current as of mid-2026 but WILL be deprecated eventually — it lives here, in
 /// ONE place. See README for the periodic-update note.
-const String kHaikuModel = 'claude-haiku-4-5-20251001';
+const String kHaikuModel = 'claude-haiku-5-5';
+
+/// How hard Haiku thinks before answering. Haiku 5.5 thinks by default (and
+/// defaults to "medium"); these are short, simple generations on a phone, so
+/// "low" keeps them fast and cheap. Thinking tokens count toward max_tokens.
+const String kHaikuEffort = 'low';
 
 /// Thrown when no API key is configured — screens should route the user to the
 /// Info tab rather than firing a doomed request.
@@ -35,9 +40,11 @@ class _ParseFailure implements Exception {
 
 /// Single entry point to the Anthropic Messages API. Returns parsed JSON.
 ///
-/// Forces valid JSON by PREFILLING the assistant turn with "{" and prepending
-/// "{" back to the returned text before parsing; strips ``` fences defensively.
-/// Retries once, then throws [ApiFailureException].
+/// Forces valid JSON with structured outputs: the caller's JSON [schema] is sent
+/// as `output_config.format`, so the reply text is a JSON object matching it.
+/// (Haiku 5.5 rejects assistant prefill, which this used to rely on.) Strips
+/// ``` fences defensively. Retries once, then throws [ApiFailureException]; a
+/// safety refusal is not retried.
 class AnthropicClient {
   AnthropicClient._();
   static final AnthropicClient instance = AnthropicClient._();
@@ -53,7 +60,8 @@ class AnthropicClient {
   Future<Map<String, dynamic>> generateJson({
     required String system,
     required String userPrompt,
-    int maxTokens = 1024,
+    required Map<String, dynamic> schema,
+    int maxTokens = 2048,
   }) async {
     final String? apiKey = await ApiKeyStore.instance.read();
     if (apiKey == null) throw NeedsSetupException();
@@ -64,9 +72,11 @@ class AnthropicClient {
       'system': system,
       'messages': [
         {'role': 'user', 'content': userPrompt},
-        // PREFILL: force the model to start a JSON object.
-        {'role': 'assistant', 'content': '{'},
       ],
+      'output_config': {
+        'effort': kHaikuEffort,
+        'format': {'type': 'json_schema', 'schema': schema},
+      },
     };
 
     Object? lastError;
@@ -81,8 +91,15 @@ class AnthropicClient {
             'content-type': 'application/json',
           }),
         );
+        // A safety classifier declined (HTTP 200). Retrying the same prompt
+        // won't help, so fail straight to the calm failure state.
+        if (res.data is Map && res.data['stop_reason'] == 'refusal') {
+          throw ApiFailureException('Request declined');
+        }
         final String text = _extractText(res.data);
         return _parseJsonObject(text);
+      } on ApiFailureException {
+        rethrow;
       } on DioException catch (e) {
         lastError = _describeDio(e);
         // retry once on transient network/server issues
@@ -99,6 +116,7 @@ class AnthropicClient {
 
   String _extractText(dynamic data) {
     if (data is Map && data['content'] is List) {
+      // Read text blocks only: the reply can start with (empty) thinking blocks.
       final buffer = StringBuffer();
       for (final block in (data['content'] as List)) {
         if (block is Map && block['type'] == 'text' && block['text'] != null) {
@@ -113,10 +131,7 @@ class AnthropicClient {
   }
 
   Map<String, dynamic> _parseJsonObject(String modelText) {
-    String s = _stripFences(modelText).trim();
-    // The assistant turn was prefilled with "{"; if the model continued from it
-    // (so its text doesn't already start with "{"), restore the brace.
-    if (!s.startsWith('{')) s = '{$s';
+    final String s = _stripFences(modelText).trim();
 
     final direct = _tryDecodeObject(s);
     if (direct != null) return direct;
