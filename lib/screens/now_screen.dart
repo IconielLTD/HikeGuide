@@ -46,6 +46,13 @@ class _NowScreenState extends State<NowScreen> {
   // the heavier one-shot environment detection below.
   String? _liveAccess;
 
+  // Refresh asks Haiku for a NEW set of opportunities (the land itself comes
+  // from EnvironmentDetector's cache) — the one user-driven way to run up API
+  // calls, so it's limited to one per [_refreshCooldown].
+  static const Duration _refreshCooldown = Duration(minutes: 2);
+  DateTime? _lastRefresh;
+  Timer? _cooldownTimer; // repaints the button when the cooldown ends
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +65,34 @@ class _NowScreenState extends State<NowScreen> {
   @override
   void dispose() {
     LiveLocation.instance.removeListener(_onLiveAccess);
+    _cooldownTimer?.cancel();
     super.dispose();
+  }
+
+  Duration get _cooldownLeft {
+    final last = _lastRefresh;
+    if (last == null) return Duration.zero;
+    final left = _refreshCooldown - DateTime.now().difference(last);
+    return left.isNegative ? Duration.zero : left;
+  }
+
+  void _refresh() {
+    final left = _cooldownLeft;
+    if (left > Duration.zero) {
+      final m = left.inMinutes;
+      final s = left.inSeconds % 60;
+      final wait = m > 0 ? '$m min ${s.toString().padLeft(2, '0')} s' : '$s s';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('New suggestions available in $wait.')),
+      );
+      return;
+    }
+    _lastRefresh = DateTime.now();
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer(_refreshCooldown, () {
+      if (mounted) setState(() {});
+    });
+    _load(forceRefresh: true);
   }
 
   // Rebuild only when the access category actually changes — not on every
@@ -73,12 +107,12 @@ class _NowScreenState extends State<NowScreen> {
   Future<void> _load({bool forceRefresh = false}) async {
     setState(() => _state = _NowState.loading);
     try {
-      // 1. GPS fix → 2. detect the environment (cache-first) → 3. opportunities.
+      // 1. GPS fix → 2. detect the environment (always cache-first: a refresh
+      // wants new suggestions, not a new Overpass query) → 3. opportunities.
       final loc = await const LocationService().getCurrentLatLng();
       final at = loc.latLng;
       final env = at != null
-          ? await EnvironmentDetector.instance
-              .detect(at, forceRefresh: forceRefresh)
+          ? await EnvironmentDetector.instance.detect(at)
           : EnvironmentContext.mock;
 
       final items = await ContentService.instance
@@ -174,9 +208,14 @@ class _NowScreenState extends State<NowScreen> {
                           style: Theme.of(context).textTheme.titleLarge),
                     ),
                     IconButton(
-                      tooltip: 'Refresh',
-                      onPressed: () => _load(forceRefresh: true),
-                      icon: const Icon(Icons.refresh, color: AppColors.accent),
+                      tooltip: _cooldownLeft > Duration.zero
+                          ? 'New suggestions available shortly'
+                          : 'New suggestions',
+                      onPressed: _refresh,
+                      icon: Icon(Icons.refresh,
+                          color: _cooldownLeft > Duration.zero
+                              ? AppColors.secondaryText
+                              : AppColors.accent),
                     ),
                   ],
                 ),

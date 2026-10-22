@@ -34,6 +34,11 @@ class _RootNavState extends State<RootNav> {
   // modal are in flight; persistence across launches lives in CacheRepository.
   bool _scotlandNoticeHandled = false;
 
+  // Tabs are built the first time they're opened, then kept alive by the
+  // IndexedStack. Most importantly the Map: built at launch it would fetch a
+  // screen of CARTO/OS tiles even if the user never looks at it.
+  final Set<int> _opened = {0};
+
   @override
   void initState() {
     super.initState();
@@ -62,7 +67,10 @@ class _RootNavState extends State<RootNav> {
   void _goToInfo() => _select(4);
 
   void _select(int i) {
-    setState(() => _index = i);
+    setState(() {
+      _index = i;
+      _opened.add(i);
+    });
     LiveLocation.instance.setNeeded(_locationTabs.contains(i));
   }
 
@@ -85,7 +93,9 @@ class _RootNavState extends State<RootNav> {
         index: _index,
         children: [
           for (var i = 0; i < screens.length; i++)
-            TickerMode(enabled: _index == i, child: screens[i]),
+            _opened.contains(i)
+                ? TickerMode(enabled: _index == i, child: screens[i])
+                : const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(

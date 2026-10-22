@@ -182,7 +182,27 @@ class _MapScreenState extends State<MapScreen> {
       _locating = _live.locating;
     });
     _checkAccessAvailability();
-    if (fix == null || !_mapReady) return;
+    _steerCamera();
+  }
+
+  // Hidden behind another tab (TickerMode off — see RootNav)? Then GPS fixes
+  // don't move the camera: each move can fetch map tiles nobody sees. The
+  // camera catches up with the latest fix when the tab is shown again.
+  bool _visible = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final visible = TickerMode.valuesOf(context).enabled;
+    if (visible == _visible) return;
+    _visible = visible;
+    if (visible) _steerCamera();
+  }
+
+  /// Centre on the first fix, then follow until the user pans away.
+  void _steerCamera() {
+    final fix = _gps;
+    if (fix == null || !_mapReady || !_visible) return;
     if (!_hasCentred) {
       _hasCentred = true;
       _mapController.move(fix, 15.0);

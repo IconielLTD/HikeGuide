@@ -13,26 +13,33 @@ import 'region_lookup.dart';
 ///   - woodland + nearest water from Overpass (best-effort; degrades on failure),
 ///   - access status from bundled CRoW/Forestry GeoJSON (null → "unknown").
 ///
-/// Result is cached per ~500 m cell (env_cache) so Overpass — flaky, 7–9 s — is
-/// queried rarely: at most once per cell per [_maxAge], or on an explicit
-/// refresh. On total Overpass failure with no cache, returns a degraded context
-/// (woodland "unknown") so the LLM screens still function.
+/// Result is cached per ~500 m cell (env_cache) so Overpass — flaky, 7–9 s, and
+/// possibly a metered keyed server — is queried rarely: at most once per cell
+/// per [_maxAge] (the land doesn't change, so the Now tab's Refresh reuses it
+/// too). On total Overpass failure, returns a degraded context (woodland
+/// [unknownWoodland]) so the LLM screens still function, and remembers that
+/// failure for [_failureBackoff] so an outage isn't re-queried on every open.
 class EnvironmentDetector {
   EnvironmentDetector._();
   static final EnvironmentDetector instance = EnvironmentDetector._();
 
   static const Duration _maxAge = Duration(days: 7);
+  static const Duration _failureBackoff = Duration(minutes: 30);
 
-  Future<EnvironmentContext> detect(
-    LatLng at, {
-    bool forceRefresh = false,
-    DateTime? now,
-  }) async {
+  /// woodlandType of a degraded context (every Overpass endpoint failed).
+  static const String unknownWoodland = 'unknown';
+
+  Future<EnvironmentContext> detect(LatLng at, {DateTime? now}) async {
     final cellKey = CacheRepository.gridKey(at.latitude, at.longitude);
-    if (!forceRefresh) {
-      final cached =
-          await CacheRepository.instance.getCachedEnv(cellKey, maxAge: _maxAge);
-      if (cached != null) return cached;
+    final repo = CacheRepository.instance;
+    final cached = await repo.getCachedEnv(cellKey, maxAge: _maxAge);
+    if (cached != null) {
+      // A confident detection is good for [_maxAge]; a remembered failure only
+      // for [_failureBackoff], after which Overpass is tried again.
+      if (cached.woodlandType != unknownWoodland) return cached;
+      final recentFailure =
+          await repo.getCachedEnv(cellKey, maxAge: _failureBackoff);
+      if (recentFailure != null) return recentFailure;
     }
 
     final when = now ?? DateTime.now();
@@ -44,7 +51,7 @@ class EnvironmentDetector {
       lat: at.latitude,
       lng: at.longitude,
       woodlandType: !ww.ok
-          ? 'unknown'
+          ? unknownWoodland
           : (ww.inWoodland ? (ww.woodlandType ?? 'woodland') : 'open ground'),
       accessStatus: access ?? 'Access status unknown',
       region: region,
@@ -55,11 +62,9 @@ class EnvironmentDetector {
       waterKind: ww.waterKind ?? '',
     );
 
-    // Only cache a confident detection — never cache a degraded "unknown" from a
-    // failed Overpass round-trip, so the next open retries.
-    if (ww.ok) {
-      await CacheRepository.instance.putCachedEnv(cellKey, env);
-    }
+    // Cache either way: a confident detection is reused for [_maxAge], a
+    // degraded one only for [_failureBackoff] (see the read above).
+    await repo.putCachedEnv(cellKey, env);
     return env;
   }
 
