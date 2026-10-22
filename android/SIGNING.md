@@ -5,11 +5,17 @@ download and sideload it. This doc sets up a stable signing key so the APKs you
 publish can be **updated in place**: Android only accepts an update that's
 signed with the same key as the already-installed app.
 
-Quick personal builds need none of this. With `android/key.properties` absent,
-the release build falls back to the debug keystore, so `flutter run --release`
-and `flutter build apk` keep working. The catch is that the debug key isn't
-stable across machines, so anything you hand to other people should use the key
-below.
+Release builds need this key: with `android/key.properties` absent,
+`flutter build apk --release` (and `flutter run --release`) **fail**, so a
+debug-signed APK can't be published by accident — the debug key isn't stable
+across machines, and an APK signed with it can't update an existing install.
+Debug builds (`flutter run`) need none of this. For a quick personal release
+build without the key, opt in to debug signing, and don't hand the result to
+anyone:
+
+```powershell
+$env:HIKEGUIDE_ALLOW_DEBUG_SIGNING = "1"; flutter build apk --release
+```
 
 None of these files are committed — `key.properties`, `*.jks`, and `*.keystore`
 are all in `android/.gitignore`. **Keep the keystore safe and backed up
@@ -52,8 +58,9 @@ flutter build apk --release
 ```
 
 The signed APK lands at `build/app/outputs/flutter-apk/app-release.apk`.
-`build.gradle` detects `key.properties` automatically and signs with your key;
-delete `key.properties` to fall back to debug signing.
+`build.gradle` detects `key.properties` automatically and signs with your key.
+Without it the release build stops with an error (unless
+`HIKEGUIDE_ALLOW_DEBUG_SIGNING=1` is set — see the top of this file).
 
 ## 4. Publish on GitHub Releases
 

@@ -156,19 +156,25 @@ basemap until they're set. Which are some of the best parts of the app.
 ## Distributing a build
 
 HikeGuide ships as a signed APK attached to a **GitHub Release** — people
-download and sideload it directly. Quick personal builds need no setup: with
-`android/key.properties` absent, the release build falls back to debug signing,
-so `flutter run --release` and the command below just work.
+download and sideload it directly. Release builds are signed with a stable key
+you keep — see [`android/SIGNING.md`](android/SIGNING.md) — so people can
+**update in place**:
 
 ```powershell
 flutter build apk --release   # → build/app/outputs/flutter-apk/app-release.apk
 ```
 
-To publish an APK that others can install and **update in place**, sign it with
-a stable key you keep — see [`android/SIGNING.md`](android/SIGNING.md). Android
-only accepts an update signed with the same key as the existing install, so a
-throwaway debug key would force people to uninstall (losing their trips) to take
-an update.
+Android only accepts an update signed with the same key as the existing
+install, so a throwaway debug key would force people to uninstall (losing their
+trips) to take an update. That's why a release build **fails** if
+`android/key.properties` is missing. For a quick personal release build without
+the key, opt in to debug signing — and don't distribute the result:
+
+```powershell
+$env:HIKEGUIDE_ALLOW_DEBUG_SIGNING = "1"; flutter build apk --release
+```
+
+Debug builds (`flutter run`) need no setup.
 
 ## Privacy
 

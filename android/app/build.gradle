@@ -17,6 +17,25 @@ if (hasReleaseKeystore) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// A release APK signed with the debug key can't update an install signed with
+// the release key, so people would have to uninstall (losing their trips) or
+// go looking for the APK elsewhere. So release builds need key.properties (see
+// android/SIGNING.md). For a quick personal release build without it, set
+// HIKEGUIDE_ALLOW_DEBUG_SIGNING=1 and it's debug-signed as before. Checked
+// when the task graph is ready, so debug builds and `flutter run` never trip it.
+def allowDebugSigning = System.getenv("HIKEGUIDE_ALLOW_DEBUG_SIGNING") == "1"
+gradle.taskGraph.whenReady { graph ->
+    def buildsRelease = graph.allTasks.any {
+        it.project == project && it.name ==~ /(assemble|bundle|package)Release/
+    }
+    if (buildsRelease && !hasReleaseKeystore && !allowDebugSigning) {
+        throw new GradleException(
+            "Release build without android/key.properties. Set up the release key " +
+            "(android/SIGNING.md), or set HIKEGUIDE_ALLOW_DEBUG_SIGNING=1 for a " +
+            "personal debug-signed build that must not be distributed.")
+    }
+}
+
 android {
     namespace = "com.nfosborn.hikeguide"
     compileSdk = flutter.compileSdkVersion
