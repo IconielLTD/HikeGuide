@@ -39,7 +39,9 @@ dependencies:
   # PINNED EXACTLY. flutter_map 8.x requires Flutter >=3.27 / Dart >=3.6; we are on
   # Flutter 3.44.1. NOTE the 8.x API: TileLayer no longer accepts `subdomains`
   # (removed in 8.0). Re-check the API on pub.dev before bumping.
-  flutter_map: 8.3.0
+  # 8.3.2: fixes a NaN fling direction after a pinch whose focal point didn't
+  # move — it sent the camera centre to NaN and red-screened the Map tab.
+  flutter_map: 8.3.2
   latlong2: ^0.9.1
   # geolocator 14.x uses LocationSettings (not the old desiredAccuracy: parameter)
   # and pulls geolocator_android 5.x, which needs the plugin `flutter` Gradle
