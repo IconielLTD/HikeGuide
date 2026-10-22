@@ -47,7 +47,11 @@ Keys are kept only in your phone's secure storage.
    **Get a key: Claude Console**, sign in, create a key and add a little credit
    to your account. It's bring-your-own-key, so usage is billed to you; each
    guide or set of opportunities costs a fraction of a penny. Paste the key
-   (it starts `sk-ant-`) and tap **Save key**.
+   (it starts `sk-ant-`) and tap **Save key**. While you're in the Console,
+   set a **monthly spend limit** under
+   [Settings → Limits](https://platform.claude.com/settings/limits) (a few
+   pounds is plenty): if your phone or key is ever lost or leaked, nobody can
+   run up more than that on your account.
 2. **CARTO basemap key** — *for the dark map.* Tap **Get a key: CARTO** and
    request a free key with your email (no account or card needed), then paste
    and save it. Without it, switch the Map to the OS map instead.
@@ -137,6 +141,9 @@ Keys are entered in-app on the **Info** tab and stored in secure storage:
 - **Anthropic API key** — *required* for generated guides and opportunities.
   Get one at <https://platform.claude.com/settings/keys>. Bring-your-own-key: usage is
   billed to your own account. You will have to add credits to your account to use it.
+  Set a monthly spend limit in the Console
+  ([Settings → Limits](https://platform.claude.com/settings/limits)) so a lost
+  or leaked key can't run up more than you're comfortable with.
 - **OS Maps (OS Data Hub) key** — *optional*, only for the OS "Outdoor"
   basemap.
 - **CARTO basemaps key** — needed for the default dark basemap (CARTO has
