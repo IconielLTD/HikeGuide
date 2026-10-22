@@ -4,10 +4,13 @@ import 'screens/root_nav.dart';
 import 'services/access_land_service.dart';
 import 'services/cache_repository.dart';
 import 'services/content_service.dart';
+import 'services/log_redaction.dart';
 import 'services/trip_recorder.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
+  // Before anything can log: keep API keys out of the device log.
+  installLogRedaction();
   WidgetsFlutterBinding.ensureInitialized();
   // Two cheap DB touches at startup, both non-fatal so they never block launch:
   //  - drop stale detections if the bundled access data changed since last run;

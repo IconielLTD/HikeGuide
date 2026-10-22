@@ -146,7 +146,9 @@ class OverpassService {
             }
           }
         } catch (e) {
-          debugPrint('Overpass $label parse error: $e');
+          // A FormatException quotes the response, which could echo the URL.
+          debugPrint('Overpass $label parse error: '
+              '${url == custom ? _redact('$e', url) : e}');
         }
       }
     }
