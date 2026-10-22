@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/access_land_service.dart' show kScotlandOpenAccessStatus;
 import '../services/cache_repository.dart';
 import '../services/live_location.dart';
+import '../services/secure_screen.dart';
 import '../widgets/access_info_sheet.dart';
 import 'guides_screen.dart';
 import 'info_screen.dart';
@@ -27,6 +28,10 @@ class _RootNavState extends State<RootNav> {
   // Tabs that actually display live location (Now, Map). Elsewhere we release
   // the GPS stream to save battery.
   static const Set<int> _locationTabs = {0, 1};
+
+  // The Info tab, where API keys are entered (and can be revealed). While it's
+  // showing, screenshots, screen recording and the recents preview are blocked.
+  static const int _infoTab = 4;
 
   // The one-time Scotland access/safety notice — auto-shown the first time the
   // user's location resolves to Scotland, then remembered so it never nags.
@@ -64,14 +69,16 @@ class _RootNavState extends State<RootNav> {
     await showAccessInfo(context, kScotlandOpenAccessStatus);
   }
 
-  void _goToInfo() => _select(4);
+  void _goToInfo() => _select(_infoTab);
 
   void _select(int i) {
+    final wasInfo = _index == _infoTab;
     setState(() {
       _index = i;
       _opened.add(i);
     });
     LiveLocation.instance.setNeeded(_locationTabs.contains(i));
+    if ((i == _infoTab) != wasInfo) SecureScreen.set(i == _infoTab);
   }
 
   @override
