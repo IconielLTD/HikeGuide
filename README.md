@@ -7,7 +7,7 @@ of the land you're standing on), and offers short, plain-English lessons and
 realistic things to try — aimed at adults with **no** prior bushcraft or
 Ordnance Survey experience.
 
-> **Status:** Android-only. **v1.0.0 released** — see [Install](#install) below. Built with Flutter 3.44.x / Dart 3.5+.
+> **Status:** Android-only. **v1.1.0 released** — see [Install](#install) below. Built with Flutter 3.44.x / Dart 3.5+.
 
 ## Install
 
@@ -20,17 +20,35 @@ app store).
 3. Open HikeGuide and grant **location** (and optionally **physical activity**,
    which is used for step counting).
 
-To get the most out of it:
+To get the most out of it, open the **Info** tab and add your API keys. Each key
+box has a link underneath it that opens the right sign-up page in your browser:
+sign up, copy the key, come back to HikeGuide, paste it in and tap **Save key**.
+Keys are kept only in your phone's secure storage.
 
-- **Add an Anthropic API key** in the **Info** tab to generate guides and
-  opportunities — it's bring-your-own-key (get one at
-  <https://console.anthropic.com/> and add a little credit). The app runs
-  without it, but those are some of the best parts.
-- **Download your region's access pack** in **Info → Offline regions** once,
-  ideally on Wi-Fi; after that the access map works fully offline in the field.
-- *(Optional)* add a free **OS Maps key** for the OS "Outdoor" basemap.
+1. **Anthropic API key** — *for guides and practice opportunities.* Tap
+   **Get a key: Claude Console**, sign in, create a key and add a little credit
+   to your account. It's bring-your-own-key, so usage is billed to you; each
+   guide or set of opportunities costs a fraction of a penny. Paste the key
+   (it starts `sk-ant-`) and tap **Save key**.
+2. **CARTO basemap key** — *for the dark map.* Tap **Get a key: CARTO** and
+   request a free key with your email (no account or card needed), then paste
+   and save it. Without it, switch the Map to the OS map instead.
+3. **OS Maps API key** — *optional, for the OS "Outdoor" map.* Tap
+   **Get a key: OS Data Hub**, create a free account and a project, and add the
+   **OS Maps API** to it on the OpenData plan (no card). Paste the project's
+   **Project API Key** (not the Project API Secret) and save it.
+4. **Overpass server** — *optional, makes woodland and water detection
+   reliable.* Without it the app uses free public servers, which are often
+   overloaded. Tap **Overpass.ch (free tier)** (or **Other providers**), sign
+   up, then paste the full server address your provider gives you, key included
+   — e.g. `https://api.overpass.ch/v1/YOUR_KEY/interpreter` — and tap
+   **Save server**.
 
-Your trips and location history stay on your device.
+Then **download your region's access pack** in **Info → Offline regions** once,
+ideally on Wi-Fi; after that the access map works fully offline in the field.
+
+The app runs without any keys, but guides, opportunities and the map are some
+of the best parts. Your trips and location history stay on your device.
 
 ## Features
 
@@ -40,7 +58,8 @@ Five tabs:
   environment around you (nearest water + its kind, woodland type), and the
   land-access classification where you're standing. All of it updates live as
   you move and cross boundaries.
-- **Map** — an OpenStreetMap basemap with per-region access-land overlays
+- **Map** — a dark CARTO basemap (or the OS "Outdoor" map, one tap away) with
+  per-region access-land overlays
   (downloaded on demand — see below), a live pulsing GPS marker, and trip
   recording. While recording, your route draws in
   amber and renders **lighter where you double back** so you can see where
@@ -97,7 +116,7 @@ flutter run            # debug build on a connected device/emulator
 Keys are entered in-app on the **Info** tab and stored in secure storage:
 
 - **Anthropic API key** — *required* for generated guides and opportunities.
-  Get one at <https://console.anthropic.com/>. Bring-your-own-key: usage is
+  Get one at <https://platform.claude.com/settings/keys>. Bring-your-own-key: usage is
   billed to your own account. You will have to add credits to your account to use it.
 - **OS Maps (OS Data Hub) key** — *optional*, only for the OS "Outdoor"
   basemap.
