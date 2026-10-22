@@ -57,6 +57,11 @@ class OverpassService {
   ];
   static const Duration _timeout = Duration(seconds: 12);
 
+  // Position precision sent to Overpass (see [buildQuery]): 3 decimal places,
+  // and the extra water radius that covers the rounding offset.
+  static double _round3(double v) => (v * 1000).roundToDouble() / 1000;
+  static const int _roundingMarginM = 100;
+
   final Dio _dio = Dio(BaseOptions(
     connectTimeout: _timeout,
     receiveTimeout: _timeout,
@@ -67,23 +72,30 @@ class OverpassService {
   ));
 
   Future<WoodlandWater> detect(LatLng at, {double waterRadiusM = 1500}) async {
-    final json = await _post(_buildQuery(at, waterRadiusM));
+    final json = await _post(buildQuery(at, waterRadiusM));
     if (json == null) return const WoodlandWater.failed();
     return parse(at, json);
   }
 
   /// Woodland (bbox) + water (around:) in a SINGLE request — two `out` blocks,
   /// concatenated in `elements`, distinguished by tags at parse time.
-  String _buildQuery(LatLng at, double waterRadiusM) {
+  ///
+  /// Privacy: Overpass servers are third parties, so the query is centred on
+  /// the position rounded to 3 decimal places (~100 m grid, at most ~60 m off)
+  /// rather than the exact fix. The ~1.3 km search box makes that irrelevant
+  /// to the result, and parsing still measures from the TRUE position; the
+  /// water radius gets a margin so rounding can't drop water near its edge.
+  @visibleForTesting
+  static String buildQuery(LatLng at, double waterRadiusM) {
     const double d = 0.012; // ~1.3 km half-box; guarantees the enclosing wood
-    final south = at.latitude - d;
-    final north = at.latitude + d;
-    final west = at.longitude - d;
-    final east = at.longitude + d;
+    final lat = _round3(at.latitude);
+    final lng = _round3(at.longitude);
+    final south = _round3(lat - d);
+    final north = _round3(lat + d);
+    final west = _round3(lng - d);
+    final east = _round3(lng + d);
     final bbox = '$south,$west,$north,$east';
-    final r = waterRadiusM.round();
-    final lat = at.latitude;
-    final lng = at.longitude;
+    final r = waterRadiusM.round() + _roundingMarginM;
     return '[out:json][timeout:25];'
         '('
         'way[natural=wood]($bbox);'

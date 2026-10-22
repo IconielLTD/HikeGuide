@@ -48,7 +48,8 @@ Then **download your region's access pack** in **Info → Offline regions** once
 ideally on Wi-Fi; after that the access map works fully offline in the field.
 
 The app runs without any keys, but guides, opportunities and the map are some
-of the best parts. Your trips and location history stay on your device.
+of the best parts. Your trips and location history stay on your device; see
+[Privacy](#privacy) for what is shared to make the app work.
 
 ## Features
 
@@ -153,10 +154,28 @@ an update.
 
 ## Privacy
 
-Your location history stays on the device. `allowBackup` is disabled and Android
-12+ data-extraction rules exclude the database and preferences, so trips and
-caches are kept out of cloud backup and device-to-device transfer. There's no
-analytics, no background-location permission, and all network calls are HTTPS.
+Your trips and location history stay on the device. `allowBackup` is disabled
+and Android 12+ data-extraction rules exclude the database and preferences, so
+trips and caches are kept out of cloud backup and device-to-device transfer.
+There's no analytics, no background-location permission, and all network calls
+are HTTPS. API keys are kept in the phone's secure storage and are never written
+to the device log.
+
+To work, the app does share some information. This is what leaves the phone,
+and who receives it:
+
+- **Overpass** (woodland and water detection): your position, **rounded to about
+  100 m**, goes to the public Overpass servers (overpass-api.de, run by FOSSGIS,
+  and overpass.private.coffee), or to your own Overpass server if you've set one.
+  It's sent when you open the Now tab in a new ~500 m area; results are reused
+  for 7 days.
+- **Map tiles**: CARTO or Ordnance Survey see which map areas you view, as with
+  any online map.
+- **Anthropic**: the requests for guides and opportunities describe your
+  surroundings (region, season, woodland type, distance and direction to the
+  nearest water, land-access type) but contain **no coordinates**.
+- **GitHub**: region packs are downloaded from this repo's Releases when you
+  choose to download them.
 
 ## Testing
 

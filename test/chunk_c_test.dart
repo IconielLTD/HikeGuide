@@ -243,6 +243,15 @@ void main() {
       expect(ww.woodlandType, isNull);
     });
 
+    test('query sends a ~100 m rounded position, never the exact fix', () {
+      const exact = LatLng(52.7614403, -1.5513411);
+      final q = OverpassService.buildQuery(exact, 1500);
+      expect(q, isNot(contains('52.7614403')));
+      expect(q, isNot(contains('1.5513411')));
+      expect(q, contains('around:1600,52.761,-1.551')); // + rounding margin
+      expect(q, contains('(52.749,-1.563,52.773,-1.539)')); // ±0.012 box
+    });
+
     test('water kind only passes known OSM values into the prompt', () {
       expect(OverpassService.waterKindOf({'waterway': 'riverbank'}), 'river');
       expect(OverpassService.waterKindOf({'natural': 'water', 'water': 'pond'}),
