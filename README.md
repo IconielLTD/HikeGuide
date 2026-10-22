@@ -17,8 +17,26 @@ app store).
 1. On your Android phone, open the **[latest release](https://github.com/IconielLTD/HikeGuide/releases/latest)** and download `app-release.apk` (~53 MB).
 2. Tap the downloaded file. The first time, Android will ask to **allow installs
    from this source** — enable it, then install.
-3. Open HikeGuide and grant **location** (and optionally **physical activity**,
+3. **Turn that permission back off** once it's installed (Settings → Apps →
+   Special app access → Install unknown apps → the browser or file manager you
+   used), so nothing else can install apps that way.
+4. Open HikeGuide and grant **location** (and optionally **physical activity**,
    which is used for step counting).
+
+**Only install HikeGuide from this repo's
+[Releases](https://github.com/IconielLTD/HikeGuide/releases) page** — not from
+copies posted anywhere else. Every genuine release is signed with the same key,
+whose SHA-256 certificate fingerprint is:
+
+```
+75:3A:27:D4:32:49:9A:96:B3:7A:11:E3:FF:26:78:8D:BE:34:B1:33:D7:0D:92:40:BE:07:1C:EE:F9:A9:74:7F
+```
+
+To check it, an app such as AppVerifier shows the fingerprint of an installed
+app, or on a computer `apksigner verify --print-certs app-release.apk` prints it
+as "Signer #1 certificate SHA-256 digest" (the same digits, lower case, without
+colons). Android enforces it for updates too: an APK signed with a different key
+won't install over HikeGuide.
 
 To get the most out of it, open the **Info** tab and add your API keys. Each key
 box has a link underneath it that opens the right sign-up page in your browser:
